@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Truco Stats</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0f172a; }
+    .card { background: #1e293b; border: 1px solid #334155; }
+    .badge-liga       { background:#16a34a22; color:#4ade80; border:1px solid #16a34a55; }
+    .badge-elim       { background:#dc262622; color:#f87171; border:1px solid #dc262655; }
+    .badge-todos      { background:#7c3aed22; color:#a78bfa; border:1px solid #7c3aed55; }
+    .badge-2v2        { background:#0ea5e922; color:#38bdf8; border:1px solid #0ea5e955; }
+    .badge-3v3        { background:#f59e0b22; color:#fbbf24; border:1px solid #f59e0b55; }
+    .badge-individual { background:#ec489922; color:#f472b6; border:1px solid #ec489955; }
+    .elo-bar { height:6px; background:#f97316; border-radius:3px; transition:width 0.6s ease; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen">
+
+  <!-- HEADER -->
+  <header class="border-b border-slate-700 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-3xl">🃏</span>
+      <div>
+        <h1 class="text-xl font-bold text-white">Truco Stats</h1>
+        <p class="text-xs text-slate-400">Historial de torneos entre amigos</p>
+      </div>
+    </div>
+    <a href="/cargar.html"
+       class="bg-orange-500 hover:bg-orange-400 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+      + Cargar torneo
+    </a>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+
+    <!-- RANKING ELO -->
+    <section>
+      <h2 class="text-lg font-bold text-white mb-4">🏆 Ranking ELO</h2>
+      <div class="card rounded-xl overflow-hidden">
+        <div id="elo-loading" class="p-8 text-center text-slate-400">Cargando...</div>
+        <table id="elo-table" class="w-full hidden">
+          <thead class="bg-slate-900 text-xs text-slate-400 uppercase">
+            <tr>
+              <th class="px-4 py-3 text-left">#</th>
+              <th class="px-4 py-3 text-left">Jugador</th>
+              <th class="px-4 py-3 text-right">ELO</th>
+              <th class="px-4 py-3 hidden md:table-cell"></th>
+            </tr>
+          </thead>
+          <tbody id="elo-body" class="divide-y divide-slate-700/50"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- WIN RATE + FINALES -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- WIN RATE GENERAL -->
+      <section>
+        <h2 class="text-lg font-bold text-white mb-4">📊 Win Rate general</h2>
+        <div class="card rounded-xl overflow-hidden">
+          <div id="wr-loading" class="p-8 text-center text-slate-400">Cargando...</div>
+          <table id="wr-table" class="w-full hidden">
+            <thead class="bg-slate-900 text-xs text-slate-400 uppercase">
+              <tr>
+                <th class="px-4 py-3 text-left">Jugador</th>
+                <th class="px-4 py-3 text-center">P</th>
+                <th class="px-4 py-3 text-center">V</th>
+                <th class="px-4 py-3 text-center">D</th>
+                <th class="px-4 py-3 text-right">%</th>
+              </tr>
+            </thead>
+            <tbody id="wr-body" class="divide-y divide-slate-700/50"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- WIN RATE EN FINALES -->
+      <section>
+        <h2 class="text-lg font-bold text-white mb-4">🎯 Clutch (semifinales + finales)</h2>
+        <div class="card rounded-xl overflow-hidden">
+          <div id="fin-loading" class="p-8 text-center text-slate-400">Cargando...</div>
+          <table id="fin-table" class="w-full hidden">
+            <thead class="bg-slate-900 text-xs text-slate-400 uppercase">
+              <tr>
+                <th class="px-4 py-3 text-left">Jugador</th>
+                <th class="px-4 py-3 text-center">Jugadas</th>
+                <th class="px-4 py-3 text-center">Ganadas</th>
+                <th class="px-4 py-3 text-right">%</th>
+              </tr>
+            </thead>
+            <tbody id="fin-body" class="divide-y divide-slate-700/50"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- MEJORES PAREJAS -->
+    <section>
+      <h2 class="text-lg font-bold text-white mb-4">🤝 Mejores parejas</h2>
+      <div class="card rounded-xl overflow-hidden">
+        <div id="par-loading" class="p-8 text-center text-slate-400">Cargando...</div>
+        <table id="par-table" class="w-full hidden">
+          <thead class="bg-slate-900 text-xs text-slate-400 uppercase">
+            <tr>
+              <th class="px-4 py-3 text-left">Pareja</th>
+              <th class="px-4 py-3 text-center">Partidos</th>
+              <th class="px-4 py-3 text-center">Victorias</th>
+              <th class="px-4 py-3 text-right">Win Rate</th>
+            </tr>
+          </thead>
+          <tbody id="par-body" class="divide-y divide-slate-700/50"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ÚLTIMOS TORNEOS -->
+    <section>
+      <h2 class="text-lg font-bold text-white mb-4">📅 Últimos torneos</h2>
+      <div id="torneos-loading" class="card rounded-xl p-8 text-center text-slate-400">Cargando...</div>
+      <div id="torneos-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+  </main>
+
+  <footer class="text-center py-6 text-slate-600 text-xs">
+    Truco Stats · <a href="/admin.html" class="hover:text-slate-400">Admin</a>
+  </footer>
+
+<script>
+const ELO_MAX = 1400, ELO_MIN = 1000;
+
+const MEDALS = ["🥇","🥈","🥉"];
+
+const FORMATO_LABEL = {
+  liga: "Liga", eliminacion_directa: "Eliminación", todos_contra_todos: "Todos vs Todos"
+};
+const FORMATO_CLASS = {
+  liga: "badge-liga", eliminacion_directa: "badge-elim", todos_contra_todos: "badge-todos"
+};
+const MOD_CLASS = {
+  "2v2": "badge-2v2", "3v3": "badge-3v3", individual: "badge-individual"
+};
+
+function badge(text, cls) {
+  return `<span class="text-xs font-semibold px-2 py-0.5 rounded-full ${cls}">${text}</span>`;
+}
+
+function winColor(wr) {
+  if (wr >= 60) return "text-green-400";
+  if (wr >= 40) return "text-yellow-400";
+  return "text-red-400";
+}
+
+// ── ELO ──
+async function loadElo() {
+  const data = await fetch("/api/stats/elo").then(r => r.json());
+  const loading = document.getElementById("elo-loading");
+  const table   = document.getElementById("elo-table");
+  const tbody   = document.getElementById("elo-body");
+
+  if (!data.length) { loading.textContent = "Sin datos todavía."; return; }
+
+  const max = data[0].eloActual;
+  tbody.innerHTML = data.map((j, i) => {
+    const pct = Math.round(((j.eloActual - ELO_MIN) / (ELO_MAX - ELO_MIN)) * 100);
+    const medal = MEDALS[i] ?? `<span class="text-slate-500">${i+1}</span>`;
+    return `
+      <tr class="hover:bg-slate-700/30 transition">
+        <td class="px-4 py-3 text-lg">${medal}</td>
+        <td class="px-4 py-3 font-semibold">${j.nombre}</td>
+        <td class="px-4 py-3 text-right font-mono font-bold text-orange-400">${j.eloActual}</td>
+        <td class="px-4 py-3 hidden md:table-cell w-40">
+          <div class="bg-slate-700 rounded h-1.5">
+            <div class="elo-bar" style="width:${pct}%"></div>
+          </div>
+        </td>
+      </tr>`;
+  }).join("");
+
+  loading.classList.add("hidden");
+  table.classList.remove("hidden");
+}
+
+// ── WIN RATE GENERAL ──
+async function loadWinRate() {
+  const data = await fetch("/api/stats/winrate").then(r => r.json());
+  const loading = document.getElementById("wr-loading");
+  const table   = document.getElementById("wr-table");
+  const tbody   = document.getElementById("wr-body");
+
+  if (!data.length) { loading.textContent = "Sin datos."; return; }
+
+  tbody.innerHTML = data.map(j => `
+    <tr class="hover:bg-slate-700/30 transition">
+      <td class="px-4 py-3 font-semibold">${j.nombre}</td>
+      <td class="px-4 py-3 text-center text-slate-300">${j.partidos}</td>
+      <td class="px-4 py-3 text-center text-green-400">${j.victorias}</td>
+      <td class="px-4 py-3 text-center text-red-400">${j.derrotas}</td>
+      <td class="px-4 py-3 text-right font-bold ${winColor(j.winRate)}">${j.winRate}%</td>
+    </tr>`).join("");
+
+  loading.classList.add("hidden");
+  table.classList.remove("hidden");
+}
+
+// ── FINALES ──
+async function loadFinales() {
+  const data = await fetch("/api/stats/finales").then(r => r.json());
+  const loading = document.getElementById("fin-loading");
+  const table   = document.getElementById("fin-table");
+  const tbody   = document.getElementById("fin-body");
+
+  if (!data.length) { loading.textContent = "Sin datos."; return; }
+
+  tbody.innerHTML = data.map(j => `
+    <tr class="hover:bg-slate-700/30 transition">
+      <td class="px-4 py-3 font-semibold">${j.nombre}</td>
+      <td class="px-4 py-3 text-center text-slate-300">${j.finalesJugadas}</td>
+      <td class="px-4 py-3 text-center text-green-400">${j.finalesGanadas}</td>
+      <td class="px-4 py-3 text-right font-bold ${winColor(j.winRate)}">${j.winRate}%</td>
+    </tr>`).join("");
+
+  loading.classList.add("hidden");
+  table.classList.remove("hidden");
+}
+
+// ── PAREJAS ──
+async function loadParejas() {
+  const data = await fetch("/api/stats/parejas").then(r => r.json());
+  const loading = document.getElementById("par-loading");
+  const table   = document.getElementById("par-table");
+  const tbody   = document.getElementById("par-body");
+
+  if (!data.length) { loading.textContent = "Sin datos."; return; }
+
+  tbody.innerHTML = data.map(p => `
+    <tr class="hover:bg-slate-700/30 transition">
+      <td class="px-4 py-3 font-semibold">${p.nombres.join(" + ")}</td>
+      <td class="px-4 py-3 text-center text-slate-300">${p.partidos}</td>
+      <td class="px-4 py-3 text-center text-green-400">${p.victorias}</td>
+      <td class="px-4 py-3 text-right font-bold ${winColor(p.winRate)}">${p.winRate}%</td>
+    </tr>`).join("");
+
+  loading.classList.add("hidden");
+  table.classList.remove("hidden");
+}
+
+// ── TORNEOS ──
+async function loadTorneos() {
+  const data = await fetch("/api/stats/torneos").then(r => r.json());
+  const loading = document.getElementById("torneos-loading");
+  const grid    = document.getElementById("torneos-grid");
+
+  if (!data.length) { loading.textContent = "Sin torneos todavía."; return; }
+
+  grid.innerHTML = data.map(t => {
+    const fecha = new Date(t.fecha).toLocaleDateString("es-AR", { day:"2-digit", month:"short", year:"numeric" });
+    const ganadores = t.ganadores?.filter(Boolean).join(" + ") || "—";
+    return `
+      <div class="card rounded-xl p-4 space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <h3 class="font-bold text-white text-sm leading-tight">${t.nombre}</h3>
+          <span class="text-xs text-slate-400 whitespace-nowrap">${fecha}</span>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          ${badge(FORMATO_LABEL[t.formato] ?? t.formato, FORMATO_CLASS[t.formato] ?? "")}
+          ${badge(t.modalidad, MOD_CLASS[t.modalidad] ?? "")}
+        </div>
+        <div class="border-t border-slate-700 pt-2">
+          <p class="text-xs text-slate-400">Ganador</p>
+          <p class="font-semibold text-orange-400">🏆 ${ganadores}</p>
+        </div>
+      </div>`;
+  }).join("");
+
+  loading.classList.add("hidden");
+  grid.classList.remove("hidden");
+}
+
+// Cargar todo en paralelo
+Promise.all([loadElo(), loadWinRate(), loadFinales(), loadParejas(), loadTorneos()]);
+</script>
+</body>
+</html>

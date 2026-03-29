@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin · Truco Stats</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0f172a; }
+    .card { background: #1e293b; border: 1px solid #334155; }
+    .input { background:#0f172a; border:1px solid #475569; color:#f1f5f9; border-radius:0.5rem; padding:0.5rem 0.75rem; font-size:0.875rem; }
+    .input:focus { outline:none; border-color:#f97316; }
+    .btn-primary { background:#f97316; color:white; font-weight:600; padding:0.6rem 1.25rem; border-radius:0.5rem; }
+    .btn-primary:hover { background:#ea580c; }
+    .btn-green { background:#16a34a; color:white; font-weight:600; padding:0.5rem 1rem; border-radius:0.5rem; font-size:0.875rem; }
+    .btn-green:hover { background:#15803d; }
+    .btn-red { background:#dc2626; color:white; font-weight:600; padding:0.5rem 1rem; border-radius:0.5rem; font-size:0.875rem; }
+    .btn-red:hover { background:#b91c1c; }
+    .btn-ghost { background:#334155; color:#cbd5e1; font-weight:500; padding:0.5rem 1rem; border-radius:0.5rem; }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen">
+
+  <header class="border-b border-slate-700 px-6 py-4 flex items-center gap-4">
+    <a href="/" class="text-slate-400 hover:text-white transition">← Volver</a>
+    <h1 class="text-lg font-bold text-white">Panel de administración</h1>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+
+    <!-- LOGIN -->
+    <div id="login-section">
+      <div class="card rounded-xl p-6 max-w-sm mx-auto space-y-4">
+        <h2 class="font-bold text-white text-center">🔐 Acceso admin</h2>
+        <input id="adminPass" class="input w-full" type="password" placeholder="Contraseña" />
+        <button onclick="login()" class="btn-primary w-full">Entrar</button>
+        <p id="login-error" class="text-red-400 text-sm text-center hidden">Contraseña incorrecta.</p>
+      </div>
+    </div>
+
+    <!-- PANEL -->
+    <div id="admin-section" class="hidden space-y-6">
+
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold text-white">Torneos pendientes de aprobación</h2>
+        <button onclick="cargarPendientes()" class="btn-ghost text-sm">↺ Actualizar</button>
+      </div>
+
+      <div id="pendientes-loading" class="card rounded-xl p-8 text-center text-slate-400">Cargando...</div>
+      <div id="pendientes-empty"  class="card rounded-xl p-8 text-center text-slate-400 hidden">
+        ✅ No hay torneos pendientes.
+      </div>
+      <div id="pendientes-list" class="space-y-6 hidden"></div>
+
+    </div>
+  </main>
+
+<script>
+let adminPassword = "";
+
+// ── LOGIN ──
+async function login() {
+  const pass = document.getElementById("adminPass").value;
+  const err  = document.getElementById("login-error");
+
+  // Verificar contra el servidor
+  const res = await fetch("/api/admin/pendientes", {
+    headers: { "x-admin-password": pass }
+  });
+
+  if (res.status === 401) {
+    err.classList.remove("hidden");
+    return;
+  }
+
+  adminPassword = pass;
+  err.classList.add("hidden");
+  document.getElementById("login-section").classList.add("hidden");
+  document.getElementById("admin-section").classList.remove("hidden");
+  renderPendientes(await res.json());
+}
+
+document.getElementById("adminPass").addEventListener("keydown", e => {
+  if (e.key === "Enter") login();
+});
+
+// ── CARGAR PENDIENTES ──
+async function cargarPendientes() {
+  document.getElementById("pendientes-loading").classList.remove("hidden");
+  document.getElementById("pendientes-list").classList.add("hidden");
+  document.getElementById("pendientes-empty").classList.add("hidden");
+
+  const data = await fetch("/api/admin/pendientes", {
+    headers: { "x-admin-password": adminPassword }
+  }).then(r => r.json());
+
+  renderPendientes(data);
+}
+
+function renderPendientes(data) {
+  document.getElementById("pendientes-loading").classList.add("hidden");
+
+  if (!data.length) {
+    document.getElementById("pendientes-empty").classList.remove("hidden");
+    return;
+  }
+
+  const list = document.getElementById("pendientes-list");
+  list.innerHTML = data.map(p => renderTarjeta(p)).join("");
+  list.classList.remove("hidden");
+}
+
+function renderTarjeta(p) {
+  const { _id, torneo, partidos, enviadoPor, fechaEnvio } = p;
+  const fecha = new Date(fechaEnvio).toLocaleString("es-AR");
+
+  const equiposHtml = torneo.equipos.map((eq, i) => {
+    const isGanador = torneo.ganador.some(id => eq.includes(id));
+    return `<span class="${isGanador ? "text-orange-400 font-bold" : "text-slate-300"}">
+      ${isGanador ? "🏆 " : ""}Equipo ${i+1}: IDs [${eq.join(", ")}]
+    </span>`;
+  }).join("<br>");
+
+  const partidosHtml = partidos.map((p, i) => {
+    const ganadorLabel = p.ganador === "A" ? "→ Equipo A" : "→ Equipo B";
+    return `<tr class="border-b border-slate-700/50">
+      <td class="py-1 pr-3 text-slate-400 text-sm">${p.ronda}</td>
+      <td class="py-1 text-sm">${ganadorLabel} gana</td>
+    </tr>`;
+  }).join("");
+
+  return `
+    <div class="card rounded-xl overflow-hidden" id="card-${_id}">
+      <!-- Header de la tarjeta -->
+      <div class="bg-slate-900 px-5 py-3 flex items-center justify-between">
+        <div>
+          <span class="font-bold text-white">${torneo.nombre}</span>
+          <span class="ml-2 text-xs text-slate-400">${torneo.formato} · ${torneo.modalidad}</span>
+        </div>
+        <div class="text-right text-xs text-slate-500">
+          <p>Enviado por <b class="text-slate-300">${enviadoPor}</b></p>
+          <p>${fecha}</p>
+        </div>
+      </div>
+
+      <div class="p-5 space-y-4">
+
+        <!-- Equipos -->
+        <div>
+          <p class="text-xs text-slate-400 uppercase font-semibold mb-2">Equipos (IDs de jugadores)</p>
+          <div class="text-sm space-y-1 bg-slate-900 rounded-lg p-3 font-mono">
+            ${equiposHtml}
+          </div>
+          <p class="text-xs text-slate-500 mt-1">💡 Verificar en Compass que los IDs correspondan a los jugadores correctos.</p>
+        </div>
+
+        <!-- Partidos -->
+        <div>
+          <p class="text-xs text-slate-400 uppercase font-semibold mb-2">Partidos (${partidos.length})</p>
+          <table class="w-full">
+            <tbody>${partidosHtml}</tbody>
+          </table>
+        </div>
+
+        <!-- Acciones -->
+        <div class="flex gap-3 pt-2 border-t border-slate-700">
+          <button onclick="aprobar('${_id}')" class="btn-green flex-1">✓ Aprobar y publicar</button>
+          <button onclick="rechazar('${_id}')" class="btn-red flex-1">✕ Rechazar</button>
+        </div>
+
+      </div>
+    </div>`;
+}
+
+// ── APROBAR ──
+async function aprobar(id) {
+  if (!confirm("¿Aprobar este torneo? Se calculará el ELO y se publicará en las estadísticas.")) return;
+
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = "Procesando...";
+
+  const res  = await fetch(`/api/admin/aprobar/${id}`, {
+    method:  "POST",
+    headers: { "x-admin-password": adminPassword }
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById(`card-${id}`).remove();
+    const restantes = document.querySelectorAll("[id^='card-']").length;
+    if (restantes === 0) {
+      document.getElementById("pendientes-list").classList.add("hidden");
+      document.getElementById("pendientes-empty").classList.remove("hidden");
+    }
+    alert("✅ Torneo aprobado y publicado.");
+  } else {
+    alert("Error: " + (data.error ?? "desconocido"));
+    btn.disabled = false;
+    btn.textContent = "✓ Aprobar y publicar";
+  }
+}
+
+// ── RECHAZAR ──
+async function rechazar(id) {
+  if (!confirm("¿Rechazar este torneo?")) return;
+
+  await fetch(`/api/admin/rechazar/${id}`, {
+    method:  "POST",
+    headers: { "x-admin-password": adminPassword }
+  });
+
+  document.getElementById(`card-${id}`).remove();
+  const restantes = document.querySelectorAll("[id^='card-']").length;
+  if (restantes === 0) {
+    document.getElementById("pendientes-list").classList.add("hidden");
+    document.getElementById("pendientes-empty").classList.remove("hidden");
+  }
+}
+</script>
+</body>
+</html>
