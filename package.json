@@ -1,21 +1,17 @@
 {
-  "name": "truco-app",
+  "name": "truco-stats",
   "version": "1.0.0",
-  "description": "App de estadísticas de Truco",
+  "description": "Estadísticas y API para Truco",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "mongodb": "^6.7.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.4"
+    "start": "node server.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=16"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "mongodb": "^4.12.1"
   }
 }

@@ -18,6 +18,19 @@ const RONDAS_FIN   = new Set(["semifinal", "final"]);
 
 let db;
 
+// Validate required environment variables early with helpful message
+if (!MONGO_URI) {
+  console.error("Missing required environment variable: MONGO_URI");
+  console.error(
+    "On Render, add it under your service -> Environment -> Environment Variables. Example:\n  MONGO_URI=mongodb+srv://user:password@cluster0.mongodb.net/truco_db?retryWrites=true&w=majority"
+  );
+  process.exit(1);
+}
+
+if (!ADMIN_PASS) {
+  console.warn("Warning: ADMIN_PASSWORD not set. Admin endpoints requiring x-admin-password will reject requests.");
+}
+
 // ── CONEXIÓN ────────────────────────────────────────────────────────────────
 async function connectDB() {
   const client = new MongoClient(MONGO_URI);
@@ -297,17 +310,38 @@ app.post("/api/admin/aprobar/:id", adminAuth, async (req, res) => {
 async function procesarTorneo(pendiente) {
   const { torneo, partidos } = pendiente;
 
-  // 1. Obtener IDs únicos de jugadores
-  const todosIds = [...new Set(torneo.equipos.flat())].map((id) => new ObjectId(id));
+  // 1. Resolver jugadores: crear nuevos (NEW:Nombre) y mapear existentes a ObjectId
+  const idMap = {}; // "NEW:Nombre" o idString => ObjectId resuelto
 
-  const jugadoresDB = await db
-    .collection("jugadores")
-    .find({ _id: { $in: todosIds } })
-    .toArray();
+  const todosSlots = [...new Set(torneo.equipos.flat())];
 
-  const eloMap     = {};
+  for (const slot of todosSlots) {
+    if (slot.startsWith("NEW:")) {
+      const nombre = slot.slice(4).trim();
+      // Verificar que no exista ya
+      const existe = await db.collection("jugadores").findOne({ nombre: { $regex: new RegExp("^" + nombre + "$", "i") } });
+      if (existe) {
+        idMap[slot] = existe._id;
+      } else {
+        const nuevoId = new ObjectId();
+        await db.collection("jugadores").insertOne({
+          _id: nuevoId, nombre, eloActual: 1200, activo: true, fechaRegistro: new Date(),
+        });
+        idMap[slot] = nuevoId;
+      }
+    } else {
+      idMap[slot] = new ObjectId(slot);
+    }
+  }
+
+  const resolverEquipo = (eq) => eq.map(slot => idMap[slot]);
+
+  // Obtener ELO de todos los jugadores
+  const todosIds = Object.values(idMap);
+  const jugadoresDB = await db.collection("jugadores").find({ _id: { $in: todosIds } }).toArray();
+
+  const eloMap = {};
   const partidosJugados = {};
-
   for (const j of jugadoresDB) {
     eloMap[j._id.toString()] = j.eloActual;
     partidosJugados[j._id.toString()] = await db.collection("partidos").countDocuments({
@@ -324,14 +358,14 @@ async function procesarTorneo(pendiente) {
     formato:   torneo.formato,
     modalidad: torneo.modalidad,
     estado:    "finalizado",
-    equipos:   torneo.equipos.map((eq) => eq.map((id) => new ObjectId(id))),
-    ganador:   torneo.ganador.map((id) => new ObjectId(id)),
+    equipos:   torneo.equipos.map(resolverEquipo),
+    ganador:   torneo.ganador.map(slot => idMap[slot]),
   });
 
   // 3. Procesar cada partido con ELO
   for (const partido of partidos) {
-    const equipoA = partido.equipoA.map((id) => new ObjectId(id));
-    const equipoB = partido.equipoB.map((id) => new ObjectId(id));
+    const equipoA = resolverEquipo(partido.equipoA);
+    const equipoB = resolverEquipo(partido.equipoB);
 
     const avgA = equipoA.reduce((s, id) => s + eloMap[id.toString()], 0) / equipoA.length;
     const avgB = equipoB.reduce((s, id) => s + eloMap[id.toString()], 0) / equipoB.length;
@@ -391,9 +425,34 @@ async function procesarTorneo(pendiente) {
 }
 
 // ── ARRANQUE ─────────────────────────────────────────────────────────────────
-connectDB().then(() => {
-  app.listen(PORT, () => console.log(`🚀 Server corriendo en puerto ${PORT}`));
-}).catch((err) => {
-  console.error("Error conectando a MongoDB:", err);
-  process.exit(1);
+// El servidor arranca siempre en el puerto. Si MongoDB falla, reintenta cada 10s.
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server corriendo en puerto ${PORT}`);
 });
+
+async function conectarConReintento() {
+  const maxIntentos = 10;
+  for (let i = 1; i <= maxIntentos; i++) {
+    try {
+      const client = new MongoClient(MONGO_URI, {
+        tls: true,
+        serverSelectionTimeoutMS: 10000,
+      });
+      await client.connect();
+      db = client.db(DB_NAME);
+      console.log("✅ Conectado a MongoDB Atlas");
+      return;
+    } catch (err) {
+      console.error(`❌ Intento ${i}/${maxIntentos} fallido:`, err.message);
+      if (i < maxIntentos) {
+        console.log("   Reintentando en 10 segundos...");
+        await new Promise(r => setTimeout(r, 10000));
+      } else {
+        console.error("No se pudo conectar a MongoDB después de varios intentos.");
+      }
+    }
+  }
+}
+
+conectarConReintento();
+  
