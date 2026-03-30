@@ -10,8 +10,7 @@
     .card { background: #1e293b; border: 1px solid #334155; }
     .input {
       background: #0f172a; border: 1px solid #475569; color: #f1f5f9;
-      border-radius: 0.5rem; padding: 0.5rem 0.75rem; width: 100%;
-      font-size: 0.875rem;
+      border-radius: 0.5rem; padding: 0.5rem 0.75rem; width: 100%; font-size: 0.875rem;
     }
     .input:focus { outline: none; border-color: #f97316; }
     select.input option { background: #1e293b; }
@@ -23,17 +22,41 @@
     .step { display:none; }
     .step.active { display:block; }
     .step-dot { width:2rem; height:2rem; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; }
+ 
+    /* Combobox */
+    .combo-wrap { position: relative; }
+    .combo-input {
+      background: #0f172a; border: 1px solid #475569; color: #f1f5f9;
+      border-radius: 0.5rem; padding: 0.5rem 0.75rem; width: 100%; font-size: 0.875rem;
+    }
+    .combo-input:focus { outline: none; border-color: #f97316; }
+    .combo-input.selected-existing { border-color: #22c55e; color: #86efac; }
+    .combo-input.selected-new      { border-color: #a78bfa; color: #c4b5fd; }
+    .combo-dropdown {
+      position: absolute; z-index: 50; top: calc(100% + 4px); left: 0; right: 0;
+      background: #1e293b; border: 1px solid #475569; border-radius: 0.5rem;
+      max-height: 200px; overflow-y: auto; display: none;
+    }
+    .combo-dropdown.open { display: block; }
+    .combo-option {
+      padding: 0.5rem 0.75rem; font-size: 0.875rem; cursor: pointer;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .combo-option:hover, .combo-option.active { background: #334155; }
+    .combo-option.new-opt { color: #a78bfa; border-top: 1px solid #334155; }
+    .combo-option.new-opt:hover { background: #3b2f5e; }
   </style>
 </head>
 <body class="text-slate-100 min-h-screen">
-
+ 
   <header class="border-b border-slate-700 px-6 py-4 flex items-center gap-4">
     <a href="/" class="text-slate-400 hover:text-white transition">← Volver</a>
     <h1 class="text-lg font-bold text-white">Cargar torneo</h1>
   </header>
-
-  <!-- PROGRESS BAR -->
+ 
   <div class="max-w-2xl mx-auto px-4 py-6">
+ 
+    <!-- PROGRESS -->
     <div class="flex items-center gap-2 mb-8">
       <div id="dot-1" class="step-dot bg-orange-500 text-white">1</div>
       <div class="flex-1 h-0.5 bg-slate-700" id="line-1"></div>
@@ -43,27 +66,23 @@
       <div class="flex-1 h-0.5 bg-slate-700" id="line-3"></div>
       <div id="dot-4" class="step-dot bg-slate-700 text-slate-400">4</div>
     </div>
-
-    <!-- ── PASO 1: Info del torneo ── -->
+ 
+    <!-- ── PASO 1 ── -->
     <div id="step-1" class="step active space-y-6">
       <div class="card rounded-xl p-6 space-y-5">
         <h2 class="font-bold text-white text-lg">Información del torneo</h2>
-
         <div>
           <label class="text-sm text-slate-400 mb-1 block">Tu nombre</label>
           <input id="enviadoPor" class="input" type="text" placeholder="¿Quién carga este torneo?" />
         </div>
-
         <div>
           <label class="text-sm text-slate-400 mb-1 block">Nombre del torneo (opcional)</label>
           <input id="torneoNombre" class="input" type="text" placeholder="Ej: Copa Asado Abril 2026" />
         </div>
-
         <div>
           <label class="text-sm text-slate-400 mb-1 block">Fecha</label>
           <input id="torneoFecha" class="input" type="date" />
         </div>
-
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="text-sm text-slate-400 mb-1 block">Formato</label>
@@ -83,12 +102,11 @@
           </div>
         </div>
       </div>
-
       <div class="flex justify-end">
         <button onclick="goStep(2)" class="btn-primary">Siguiente →</button>
       </div>
     </div>
-
+ 
     <!-- ── PASO 2: Equipos ── -->
     <div id="step-2" class="step space-y-6">
       <div class="card rounded-xl p-6 space-y-4">
@@ -96,16 +114,18 @@
           <h2 class="font-bold text-white text-lg">Equipos</h2>
           <button onclick="addEquipo()" class="btn-ghost text-sm">+ Agregar equipo</button>
         </div>
-        <p class="text-sm text-slate-400">Seleccioná los jugadores de cada equipo usando los dropdowns.</p>
-        <div id="equipos-container" class="space-y-3"></div>
+        <p class="text-sm text-slate-400">
+          Escribí el nombre para buscar jugadores existentes.<br>
+          Si no aparece, podés agregarlo como jugador nuevo desde la lista.
+        </p>
+        <div id="equipos-container" class="space-y-4"></div>
       </div>
-
       <div class="flex justify-between">
         <button onclick="goStep(1)" class="btn-ghost">← Atrás</button>
         <button onclick="goStep(3)" class="btn-primary">Siguiente →</button>
       </div>
     </div>
-
+ 
     <!-- ── PASO 3: Partidos ── -->
     <div id="step-3" class="step space-y-6">
       <div class="card rounded-xl p-6 space-y-4">
@@ -116,38 +136,33 @@
         <p class="text-sm text-slate-400">Cargá cada partido indicando los equipos y quién ganó.</p>
         <div id="partidos-container" class="space-y-3"></div>
       </div>
-
       <div class="flex justify-between">
         <button onclick="goStep(2)" class="btn-ghost">← Atrás</button>
         <button onclick="goStep(4)" class="btn-primary">Siguiente →</button>
       </div>
     </div>
-
-    <!-- ── PASO 4: Ganador y confirmación ── -->
+ 
+    <!-- ── PASO 4: Ganador ── -->
     <div id="step-4" class="step space-y-6">
       <div class="card rounded-xl p-6 space-y-5">
         <h2 class="font-bold text-white text-lg">Ganador del torneo</h2>
-
         <div>
           <label class="text-sm text-slate-400 mb-1 block">¿Qué equipo ganó el torneo?</label>
           <select id="ganadorSelect" class="input">
             <option value="">— Seleccionar equipo ganador —</option>
           </select>
         </div>
-
-        <!-- Resumen -->
-        <div class="border-t border-slate-700 pt-4 space-y-2">
-          <h3 class="text-sm font-bold text-slate-300">Resumen</h3>
+        <div class="border-t border-slate-700 pt-4 space-y-1">
+          <h3 class="text-sm font-bold text-slate-300 mb-2">Resumen</h3>
           <div id="resumen" class="text-sm text-slate-400 space-y-1"></div>
         </div>
       </div>
-
       <div class="flex justify-between">
         <button onclick="goStep(3)" class="btn-ghost">← Atrás</button>
         <button onclick="enviar()" class="btn-primary">Enviar para revisión ✓</button>
       </div>
     </div>
-
+ 
     <!-- ── ÉXITO ── -->
     <div id="step-ok" class="step">
       <div class="card rounded-xl p-10 text-center space-y-4">
@@ -157,166 +172,240 @@
         <a href="/" class="btn-primary inline-block mt-4">Ver estadísticas</a>
       </div>
     </div>
-
+ 
   </div>
-
+ 
 <script>
-let jugadores = [];      // [{_id, nombre}]
-let equipos   = [];      // [[id, id], [id, id], ...]
-let partidos  = [];      // [{equipoA_idx, equipoB_idx, ganador}]
-let currentStep = 1;
-
-// ── INIT ──
+let jugadores = [];   // [{_id, nombre}]
+let equipos   = [];   // array de arrays: cada slot = {tipo:'existente'|'nuevo'|null, valor: id|nombre|null, display: string}
+let partidos  = [];
+ 
 window.addEventListener("DOMContentLoaded", async () => {
-  // Fecha de hoy por defecto
   document.getElementById("torneoFecha").value = new Date().toISOString().slice(0, 10);
-
-  // Cargar jugadores desde la API
   try {
     jugadores = await fetch("/api/jugadores").then(r => r.json());
-  } catch {
-    alert("No se pudo conectar con el servidor.");
+  } catch { console.warn("No se pudo cargar jugadores."); }
+});
+ 
+// Cerrar dropdowns al hacer click fuera
+document.addEventListener("click", e => {
+  if (!e.target.closest(".combo-wrap")) {
+    document.querySelectorAll(".combo-dropdown.open").forEach(d => d.classList.remove("open"));
   }
 });
-
-// ── NAVEGACIÓN ENTRE PASOS ──
+ 
+// ── NAVEGACIÓN ──
 function goStep(n) {
   if (n === 2 && !validarPaso1()) return;
   if (n === 3 && !validarPaso2()) return;
-  if (n === 4 && !validarPaso3()) { return; }
-  if (n === 4) llenarGanadorSelect();
-
+  if (n === 4 && !validarPaso3()) return;
+  if (n === 4) { llenarGanadorSelect(); actualizarResumen(); }
+ 
   document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
   document.getElementById(`step-${n}`)?.classList.add("active");
-
-  // Actualizar dots
+ 
   for (let i = 1; i <= 4; i++) {
-    const dot  = document.getElementById(`dot-${i}`);
+    const dot = document.getElementById(`dot-${i}`);
     const line = document.getElementById(`line-${i}`);
-    if (i < n) {
-      dot.className  = "step-dot bg-green-500 text-white";
-      if (line) line.style.background = "#22c55e";
-    } else if (i === n) {
-      dot.className = "step-dot bg-orange-500 text-white";
-    } else {
-      dot.className = "step-dot bg-slate-700 text-slate-400";
-      if (line) line.style.background = "";
-    }
+    if (i < n)        { dot.className = "step-dot bg-green-500 text-white"; if (line) line.style.background = "#22c55e"; }
+    else if (i === n) { dot.className = "step-dot bg-orange-500 text-white"; }
+    else              { dot.className = "step-dot bg-slate-700 text-slate-400"; if (line) line.style.background = ""; }
   }
-
-  currentStep = n;
-  if (n === 4) actualizarResumen();
 }
-
+ 
 // ── VALIDACIONES ──
 function validarPaso1() {
-  const nombre = document.getElementById("enviadoPor").value.trim();
-  if (!nombre) { alert("Ingresá tu nombre."); return false; }
+  if (!document.getElementById("enviadoPor").value.trim()) { alert("Ingresá tu nombre."); return false; }
   return true;
 }
-
+ 
 function validarPaso2() {
   const modalidad = document.getElementById("torneoModalidad").value;
   const porEquipo = modalidad === "individual" ? 1 : modalidad === "3v3" ? 3 : 2;
-
   if (equipos.length < 2) { alert("Necesitás al menos 2 equipos."); return false; }
-
+ 
+  const existentesNombres = jugadores.map(j => j.nombre.trim().toLowerCase());
+ 
   for (let i = 0; i < equipos.length; i++) {
-    const eq = equipos[i].filter(Boolean);
-    if (eq.length !== porEquipo) {
-      alert(`El equipo ${i+1} necesita exactamente ${porEquipo} jugador(es).`);
-      return false;
-    }
-    const uniq = new Set(eq);
-    if (uniq.size !== eq.length) {
-      alert(`El equipo ${i+1} tiene jugadores repetidos.`);
-      return false;
+    const slots = equipos[i].filter(s => s?.valor);
+    if (slots.length !== porEquipo) { alert(`El equipo ${i+1} necesita ${porEquipo} jugador(es).`); return false; }
+    for (const s of slots) {
+      if (s.tipo === "nuevo") {
+        if (!s.valor.trim()) { alert(`Un jugador nuevo en el equipo ${i+1} no tiene nombre.`); return false; }
+        if (existentesNombres.includes(s.valor.trim().toLowerCase())) {
+          alert(`"${s.valor}" ya existe en la base de datos. Buscalo en el campo de texto.`); return false;
+        }
+      }
     }
   }
-
-  // Verificar que ningún jugador esté en dos equipos
-  const todos = equipos.flat().filter(Boolean);
-  if (new Set(todos).size !== todos.length) {
-    alert("Un mismo jugador aparece en más de un equipo.");
-    return false;
-  }
+ 
+  const todos = equipos.flat().filter(s => s?.valor).map(s =>
+    s.tipo === "nuevo" ? `NEW:${s.valor.trim().toLowerCase()}` : s.valor
+  );
+  if (new Set(todos).size !== todos.length) { alert("Un jugador aparece en más de un equipo."); return false; }
   return true;
 }
-
+ 
 function validarPaso3() {
-  if (partidos.length === 0) { alert("Cargá al menos un partido."); return false; }
+  if (!partidos.length) { alert("Cargá al menos un partido."); return false; }
   for (let i = 0; i < partidos.length; i++) {
     const p = partidos[i];
-    if (p.equipoA_idx === "" || p.equipoB_idx === "" || !p.ganador || !p.ronda) {
-      alert(`El partido ${i+1} está incompleto.`); return false;
-    }
-    if (p.equipoA_idx === p.equipoB_idx) {
-      alert(`El partido ${i+1} tiene el mismo equipo en ambos lados.`); return false;
-    }
+    if (p.equipoA_idx === "" || p.equipoB_idx === "" || !p.ganador || !p.ronda) { alert(`El partido ${i+1} está incompleto.`); return false; }
+    if (p.equipoA_idx === p.equipoB_idx) { alert(`El partido ${i+1} tiene el mismo equipo en ambos lados.`); return false; }
   }
   return true;
 }
-
+ 
+// ── COMBOBOX ──────────────────────────────────────────────────────────────
+// Crea un combobox buscable para seleccionar jugador existente o nuevo
+function crearCombobox(eqIdx, slotIdx) {
+  const wrap = document.createElement("div");
+  wrap.className = "combo-wrap flex-1";
+ 
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Buscar jugador...";
+  input.className = "combo-input";
+  input.autocomplete = "off";
+ 
+  const dropdown = document.createElement("div");
+  dropdown.className = "combo-dropdown";
+ 
+  wrap.appendChild(input);
+  wrap.appendChild(dropdown);
+ 
+  function renderOpciones(filtro) {
+    const f = filtro.trim().toLowerCase();
+ 
+    const coincidencias = f
+      ? jugadores.filter(j => j.nombre.toLowerCase().includes(f))
+      : jugadores;
+ 
+    dropdown.innerHTML = "";
+ 
+    // Opción "Jugador nuevo" SIEMPRE primera
+    const newOpt = document.createElement("div");
+    const textoNuevo = f ? `➕ Agregar "${filtro}" como nuevo jugador` : "➕ Agregar jugador nuevo...";
+    newOpt.className = "combo-option new-opt";
+    newOpt.textContent = textoNuevo;
+    newOpt.addEventListener("mousedown", e => {
+      e.preventDefault();
+      const nombre = f || "";
+      if (!nombre) {
+        const n = prompt("Nombre del jugador nuevo:");
+        if (!n?.trim()) return;
+        seleccionarNuevo(n.trim());
+      } else {
+        seleccionarNuevo(filtro.trim());
+      }
+    });
+    dropdown.appendChild(newOpt);
+ 
+    // Jugadores existentes filtrados
+    coincidencias.forEach(j => {
+      const opt = document.createElement("div");
+      opt.className = "combo-option";
+      opt.innerHTML = `<span class="text-green-400 text-xs">●</span> ${j.nombre}`;
+      opt.addEventListener("mousedown", e => {
+        e.preventDefault();
+        seleccionarExistente(j);
+      });
+      dropdown.appendChild(opt);
+    });
+ 
+    if (!coincidencias.length && !f) {
+      const empty = document.createElement("div");
+      empty.className = "combo-option text-slate-500";
+      empty.textContent = "No hay jugadores cargados aún.";
+      dropdown.appendChild(empty);
+    }
+ 
+    dropdown.classList.add("open");
+  }
+ 
+  function seleccionarExistente(j) {
+    equipos[eqIdx][slotIdx] = { tipo: "existente", valor: j._id, display: j.nombre };
+    input.value = j.nombre;
+    input.className = "combo-input selected-existing";
+    dropdown.classList.remove("open");
+  }
+ 
+  function seleccionarNuevo(nombre) {
+    equipos[eqIdx][slotIdx] = { tipo: "nuevo", valor: nombre, display: `${nombre} ✨` };
+    input.value = `${nombre} ✨ (nuevo)`;
+    input.className = "combo-input selected-new";
+    dropdown.classList.remove("open");
+  }
+ 
+  input.addEventListener("focus", () => renderOpciones(input.value));
+  input.addEventListener("input", () => {
+    // Si el usuario modifica el texto después de haber seleccionado, limpiar la selección
+    equipos[eqIdx][slotIdx] = { tipo: null, valor: null, display: null };
+    input.className = "combo-input";
+    renderOpciones(input.value);
+  });
+  input.addEventListener("blur", () => {
+    setTimeout(() => dropdown.classList.remove("open"), 150);
+  });
+ 
+  return wrap;
+}
+ 
 // ── EQUIPOS ──
 function addEquipo() {
-  const idx  = equipos.length;
-  equipos.push([]);
-
+  const idx = equipos.length;
   const modalidad = document.getElementById("torneoModalidad").value;
   const porEquipo = modalidad === "individual" ? 1 : modalidad === "3v3" ? 3 : 2;
-
-  const slots = Array.from({ length: porEquipo }, (_, s) => `
-    <select class="input flex-1" onchange="updateEquipo(${idx}, ${s}, this.value)">
-      <option value="">— Jugador ${s+1} —</option>
-      ${jugadores.map(j => `<option value="${j._id}">${j.nombre}</option>`).join("")}
-    </select>`).join("");
-
+  equipos.push(Array.from({ length: porEquipo }, () => ({ tipo: null, valor: null, display: null })));
+ 
   const div = document.createElement("div");
   div.id = `equipo-${idx}`;
-  div.className = "flex items-center gap-2";
-  div.innerHTML = `
-    <span class="text-slate-400 text-sm w-20 shrink-0">Equipo ${idx + 1}</span>
-    <div class="flex gap-2 flex-1">${slots}</div>
-    <button onclick="removeEquipo(${idx})" class="btn-danger shrink-0">✕</button>`;
-
+  div.className = "card rounded-lg p-3 space-y-2";
+ 
+  const header = document.createElement("div");
+  header.className = "flex items-center justify-between mb-1";
+  header.innerHTML = `
+    <span class="text-sm font-semibold text-slate-300">Equipo ${idx + 1}</span>
+    <button onclick="removeEquipo(${idx})" class="btn-danger text-xs">✕ Quitar</button>`;
+  div.appendChild(header);
+ 
+  for (let s = 0; s < porEquipo; s++) {
+    const row = document.createElement("div");
+    row.className = "flex items-center gap-2";
+    if (porEquipo > 1) {
+      const lbl = document.createElement("span");
+      lbl.className = "text-xs text-slate-500 w-16 shrink-0";
+      lbl.textContent = `Jugador ${s + 1}`;
+      row.appendChild(lbl);
+    }
+    row.appendChild(crearCombobox(idx, s));
+    div.appendChild(row);
+  }
+ 
   document.getElementById("equipos-container").appendChild(div);
 }
-
-function updateEquipo(eqIdx, slot, jugadorId) {
-  if (!equipos[eqIdx]) equipos[eqIdx] = [];
-  equipos[eqIdx][slot] = jugadorId;
-}
-
+ 
 function removeEquipo(idx) {
-  equipos[idx] = null;
-  document.getElementById(`equipo-${idx}`)?.remove();
-  equipos = equipos.filter(e => e !== null);
-  // Re-render
+  equipos.splice(idx, 1);
   document.getElementById("equipos-container").innerHTML = "";
-  const temp = [...equipos];
-  equipos = [];
+  const temp = [...equipos]; equipos = [];
   temp.forEach(() => addEquipo());
 }
-
-// ── PARTIDOS ──
+ 
 function nombreEquipo(idx) {
-  const eq = equipos[idx]?.filter(Boolean) ?? [];
-  return eq.map(id => jugadores.find(j => j._id === id)?.nombre ?? "?").join(" + ") || `Equipo ${idx+1}`;
+  return (equipos[idx] ?? [])
+    .filter(s => s?.valor)
+    .map(s => s.display || s.valor)
+    .join(" + ") || `Equipo ${idx + 1}`;
 }
-
+ 
+// ── PARTIDOS ──
 function addPartido() {
   const idx = partidos.length;
   partidos.push({ equipoA_idx: "", equipoB_idx: "", ganador: "", ronda: "" });
-
-  const equipoOpts = equipos
-    .map((_, i) => `<option value="${i}">${nombreEquipo(i)}</option>`)
-    .join("");
-
-  const rondas = [
-    "jornada_1","jornada_2","jornada_3","jornada_4","jornada_5",
-    "cuartos","semifinal","final","fase_1","fase_2","fase_3"
-  ];
-
+  const opts = equipos.map((_, i) => `<option value="${i}">${nombreEquipo(i)}</option>`).join("");
+  const rondas = ["jornada_1","jornada_2","jornada_3","jornada_4","jornada_5","cuartos","semifinal","final","fase_1","fase_2","fase_3"];
+ 
   const div = document.createElement("div");
   div.id = `partido-${idx}`;
   div.className = "card rounded-lg p-4 space-y-3";
@@ -326,112 +415,89 @@ function addPartido() {
       <button onclick="removePartido(${idx})" class="btn-danger">✕</button>
     </div>
     <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="text-xs text-slate-400 mb-1 block">Equipo A</label>
-        <select class="input" onchange="partidos[${idx}].equipoA_idx = this.value">
-          <option value="">— Equipo A —</option>${equipoOpts}
-        </select>
-      </div>
-      <div>
-        <label class="text-xs text-slate-400 mb-1 block">Equipo B</label>
-        <select class="input" onchange="partidos[${idx}].equipoB_idx = this.value">
-          <option value="">— Equipo B —</option>${equipoOpts}
-        </select>
-      </div>
+      <div><label class="text-xs text-slate-400 mb-1 block">Equipo A</label>
+        <select class="input" onchange="partidos[${idx}].equipoA_idx=this.value">
+          <option value="">— Equipo A —</option>${opts}</select></div>
+      <div><label class="text-xs text-slate-400 mb-1 block">Equipo B</label>
+        <select class="input" onchange="partidos[${idx}].equipoB_idx=this.value">
+          <option value="">— Equipo B —</option>${opts}</select></div>
     </div>
     <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="text-xs text-slate-400 mb-1 block">Ganador</label>
-        <select class="input" onchange="partidos[${idx}].ganador = this.value">
+      <div><label class="text-xs text-slate-400 mb-1 block">Ganador</label>
+        <select class="input" onchange="partidos[${idx}].ganador=this.value">
           <option value="">— Quién ganó —</option>
-          <option value="A">Equipo A</option>
-          <option value="B">Equipo B</option>
-        </select>
-      </div>
-      <div>
-        <label class="text-xs text-slate-400 mb-1 block">Ronda</label>
-        <select class="input" onchange="partidos[${idx}].ronda = this.value">
+          <option value="A">Equipo A</option><option value="B">Equipo B</option></select></div>
+      <div><label class="text-xs text-slate-400 mb-1 block">Ronda</label>
+        <select class="input" onchange="partidos[${idx}].ronda=this.value">
           <option value="">— Ronda —</option>
-          ${rondas.map(r => `<option value="${r}">${r}</option>`).join("")}
-        </select>
-      </div>
+          ${rondas.map(r => `<option value="${r}">${r}</option>`).join("")}</select></div>
     </div>`;
-
   document.getElementById("partidos-container").appendChild(div);
 }
-
+ 
 function removePartido(idx) {
   partidos.splice(idx, 1);
   document.getElementById("partidos-container").innerHTML = "";
-  const temp = [...partidos];
-  partidos = [];
+  const temp = [...partidos]; partidos = [];
   temp.forEach(() => addPartido());
 }
-
-// ── GANADOR SELECT ──
+ 
+// ── GANADOR ──
 function llenarGanadorSelect() {
-  const sel = document.getElementById("ganadorSelect");
-  sel.innerHTML = `<option value="">— Seleccionar equipo ganador —</option>` +
+  document.getElementById("ganadorSelect").innerHTML =
+    `<option value="">— Seleccionar —</option>` +
     equipos.map((_, i) => `<option value="${i}">${nombreEquipo(i)}</option>`).join("");
 }
-
-// ── RESUMEN ──
+ 
 function actualizarResumen() {
-  const nombre    = document.getElementById("torneoNombre").value.trim();
-  const fecha     = document.getElementById("torneoFecha").value;
-  const formato   = document.getElementById("torneoFormato").value;
-  const modalidad = document.getElementById("torneoModalidad").value;
-
+  const nuevos = equipos.flat().filter(s => s?.tipo === "nuevo" && s.valor);
   document.getElementById("resumen").innerHTML = `
-    <p>📋 <b>Torneo:</b> ${nombre || "Sin nombre"}</p>
-    <p>📅 <b>Fecha:</b> ${fecha}</p>
-    <p>🎮 <b>Formato:</b> ${formato} · ${modalidad}</p>
-    <p>👥 <b>Equipos:</b> ${equipos.length}</p>
-    <p>⚔️  <b>Partidos:</b> ${partidos.length}</p>`;
+    <p>📋 <b>Torneo:</b> ${document.getElementById("torneoNombre").value || "Sin nombre"}</p>
+    <p>📅 <b>Fecha:</b> ${document.getElementById("torneoFecha").value}</p>
+    <p>🎮 <b>Formato:</b> ${document.getElementById("torneoFormato").value} · ${document.getElementById("torneoModalidad").value}</p>
+    <p>👥 <b>Equipos:</b> ${equipos.length} &nbsp;|&nbsp; ⚔️ <b>Partidos:</b> ${partidos.length}</p>
+    ${nuevos.length ? `<p>✨ <b>Jugadores nuevos:</b> ${nuevos.map(s=>s.valor).join(", ")}</p>` : ""}`;
 }
-
+ 
 // ── ENVIAR ──
+function serializarSlot(s) {
+  if (!s?.valor) return null;
+  return s.tipo === "nuevo" ? `NEW:${s.valor.trim()}` : s.valor;
+}
+ 
 async function enviar() {
   const ganadorIdx = document.getElementById("ganadorSelect").value;
-  if (ganadorIdx === "") { alert("Seleccioná el equipo ganador."); return; }
-
-  const nombre = document.getElementById("torneoNombre").value.trim();
+  if (!ganadorIdx) { alert("Seleccioná el equipo ganador."); return; }
+ 
   const fecha  = document.getElementById("torneoFecha").value;
-
+  const nombre = document.getElementById("torneoNombre").value.trim();
+ 
   const payload = {
     enviadoPor: document.getElementById("enviadoPor").value.trim(),
     torneo: {
-      nombre:    nombre || `Liga ${new Date(fecha).toLocaleDateString("es-AR", { month:"long", year:"numeric" })}`,
+      nombre: nombre || `Liga ${new Date(fecha).toLocaleDateString("es-AR",{month:"long",year:"numeric"})}`,
       fecha,
       formato:   document.getElementById("torneoFormato").value,
       modalidad: document.getElementById("torneoModalidad").value,
-      equipos:   equipos.map(eq => eq.filter(Boolean)),
-      ganador:   equipos[Number(ganadorIdx)].filter(Boolean),
+      equipos:   equipos.map(eq => eq.map(serializarSlot).filter(Boolean)),
+      ganador:   equipos[Number(ganadorIdx)].map(serializarSlot).filter(Boolean),
     },
     partidos: partidos.map(p => ({
-      equipoA:  equipos[Number(p.equipoA_idx)].filter(Boolean),
-      equipoB:  equipos[Number(p.equipoB_idx)].filter(Boolean),
-      ganador:  p.ganador,
-      ronda:    p.ronda,
+      equipoA: equipos[Number(p.equipoA_idx)].map(serializarSlot).filter(Boolean),
+      equipoB: equipos[Number(p.equipoB_idx)].map(serializarSlot).filter(Boolean),
+      ganador: p.ganador,
+      ronda:   p.ronda,
     })),
   };
-
+ 
   try {
-    const res  = await fetch("/api/pendientes", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(payload),
-    });
+    const res  = await fetch("/api/pendientes", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
     const data = await res.json();
     if (data.ok) {
       document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
       document.getElementById("step-ok").classList.add("active");
-    } else {
-      alert("Error: " + (data.error ?? "desconocido"));
-    }
-  } catch (e) {
-    alert("Error de conexión: " + e.message);
-  }
+    } else { alert("Error: " + (data.error ?? "desconocido")); }
+  } catch(e) { alert("Error de conexión: " + e.message); }
 }
 </script>
 </body>
