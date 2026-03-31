@@ -313,7 +313,12 @@ async function procesarTorneo(pendiente) {
   // 1. Resolver jugadores: crear nuevos (NEW:Nombre) y mapear existentes a ObjectId
   const idMap = {}; // "NEW:Nombre" o idString => ObjectId resuelto
 
-  const todosSlots = [...new Set(torneo.equipos.flat())];
+  // Recolectar todos los slots: de equipos del torneo (modo torneo)
+  // y de los partidos (necesario para modo sueltos donde torneo.equipos = [])
+  const todosSlots = [...new Set([
+    ...torneo.equipos.flat(),
+    ...partidos.flatMap(p => [...p.equipoA, ...p.equipoB]),
+  ])];
 
   for (const slot of todosSlots) {
     if (slot.startsWith("NEW:")) {
