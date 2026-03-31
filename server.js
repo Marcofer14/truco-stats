@@ -273,6 +273,18 @@ app.get("/api/admin/pendientes", adminAuth, async (req, res) => {
   }
 });
 
+// Borrar pendientes ya procesados (aprobados o rechazados)
+app.delete("/api/admin/pendientes/procesados", adminAuth, async (req, res) => {
+  try {
+    const result = await db.collection("pendientes").deleteMany({
+      estado: { $in: ["aprobado", "rechazado"] },
+    });
+    res.json({ ok: true, borrados: result.deletedCount });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post("/api/admin/rechazar/:id", adminAuth, async (req, res) => {
   try {
     await db.collection("pendientes").updateOne(
@@ -335,6 +347,9 @@ async function procesarTorneo(pendiente) {
         idMap[slot] = nuevoId;
       }
     } else {
+      if (!slot || typeof slot !== "string" || !/^[a-f\d]{24}$/i.test(slot)) {
+        throw new Error(`Slot inválido en pendiente: "${slot}" — no es un ObjectId de 24 caracteres hex. Revisá los datos del formulario.`);
+      }
       idMap[slot] = new ObjectId(slot);
     }
   }
