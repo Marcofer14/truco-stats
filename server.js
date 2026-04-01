@@ -18,25 +18,37 @@ const RONDAS_FIN   = new Set(["semifinal", "final"]);
 
 let db;
 
-// Validate required environment variables early with helpful message
 if (!MONGO_URI) {
   console.error("Missing required environment variable: MONGO_URI");
-  console.error(
-    "On Render, add it under your service -> Environment -> Environment Variables. Example:\n  MONGO_URI=mongodb+srv://user:password@cluster0.mongodb.net/truco_db?retryWrites=true&w=majority"
-  );
   process.exit(1);
 }
-
 if (!ADMIN_PASS) {
-  console.warn("Warning: ADMIN_PASSWORD not set. Admin endpoints requiring x-admin-password will reject requests.");
+  console.warn("Warning: ADMIN_PASSWORD not set.");
 }
 
 // ── CONEXIÓN ────────────────────────────────────────────────────────────────
-async function connectDB() {
-  const client = new MongoClient(MONGO_URI);
-  await client.connect();
-  db = client.db(DB_NAME);
-  console.log("✅ Conectado a MongoDB");
+async function conectarConReintento() {
+  const maxIntentos = 10;
+  for (let i = 1; i <= maxIntentos; i++) {
+    try {
+      const client = new MongoClient(MONGO_URI, {
+        tls: true,
+        serverSelectionTimeoutMS: 10000,
+      });
+      await client.connect();
+      db = client.db(DB_NAME);
+      console.log("✅ Conectado a MongoDB Atlas");
+      return;
+    } catch (err) {
+      console.error(`❌ Intento ${i}/${maxIntentos} fallido:`, err.message);
+      if (i < maxIntentos) {
+        console.log("   Reintentando en 10 segundos...");
+        await new Promise(r => setTimeout(r, 10000));
+      } else {
+        console.error("No se pudo conectar a MongoDB después de varios intentos.");
+      }
+    }
+  }
 }
 
 // ── AUTH ADMIN ──────────────────────────────────────────────────────────────
@@ -52,11 +64,100 @@ function eloEsperado(a, b) {
   return 1 / (1 + Math.pow(10, (b - a) / 400));
 }
 
+// ── HELPERS DE SLOT ─────────────────────────────────────────────────────────
+function validarSlot(slot) {
+  if (!slot || typeof slot !== "string") {
+    throw new Error(`Slot inválido: ${JSON.stringify(slot)}`);
+  }
+  if (!slot.startsWith("NEW:") && !/^[a-f\d]{24}$/i.test(slot)) {
+    throw new Error(`"${slot}" no es un ObjectId válido (debe ser 24 caracteres hex)`);
+  }
+}
+
+async function resolverSlots(slots) {
+  // Devuelve un idMap: slot → ObjectId
+  const idMap = {};
+  const unicos = [...new Set(slots)];
+
+  for (const slot of unicos) {
+    validarSlot(slot);
+
+    if (slot.startsWith("NEW:")) {
+      const nombre = slot.slice(4).trim();
+      if (!nombre) throw new Error("Jugador nuevo sin nombre.");
+      const existe = await db.collection("jugadores").findOne({
+        nombre: { $regex: new RegExp("^" + nombre + "$", "i") },
+      });
+      if (existe) {
+        idMap[slot] = existe._id;
+      } else {
+        const nuevoId = new ObjectId();
+        await db.collection("jugadores").insertOne({
+          _id: nuevoId, nombre, eloActual: 1200, activo: true, fechaRegistro: new Date(),
+        });
+        idMap[slot] = nuevoId;
+      }
+    } else {
+      idMap[slot] = new ObjectId(slot);
+    }
+  }
+  return idMap;
+}
+
+async function obtenerElos(ids) {
+  // Devuelve { eloMap, partidosJugados } para un array de ObjectId
+  const jugadoresDB = await db.collection("jugadores")
+    .find({ _id: { $in: ids } })
+    .toArray();
+
+  const eloMap = {};
+  const partidosJugados = {};
+  for (const j of jugadoresDB) {
+    eloMap[j._id.toString()] = j.eloActual;
+    partidosJugados[j._id.toString()] = await db.collection("partidos").countDocuments({
+      $or: [{ equipoA: j._id }, { equipoB: j._id }],
+    });
+  }
+  return { eloMap, partidosJugados };
+}
+
+function calcularYRegistrarElo(ids, exp, resultado, esFinal, eloMap, partidosJugados, partidoId, torneoId, fecha, ronda) {
+  const historial = [];
+  for (const id of ids) {
+    const idStr = id.toString();
+    const k = esFin(ronda) ? K_FINAL : (partidosJugados[idStr] >= UMBRAL_VET ? K_VET : K_NORMAL);
+    const nuevo = Math.round(eloMap[idStr] + k * (resultado - exp));
+    historial.push({
+      jugadorId:   id,
+      eloAnterior: eloMap[idStr],
+      eloNuevo:    nuevo,
+      delta:       nuevo - eloMap[idStr],
+      partidoId,
+      ...(torneoId ? { torneoId } : {}),
+      fecha,
+      ronda,
+    });
+    eloMap[idStr] = nuevo;
+    partidosJugados[idStr]++;
+  }
+  return historial;
+}
+
+function esFin(ronda) {
+  return RONDAS_FIN.has(ronda);
+}
+
+async function actualizarElosEnDB(eloMap) {
+  for (const [idStr, elo] of Object.entries(eloMap)) {
+    await db.collection("jugadores")
+      .updateOne({ _id: new ObjectId(idStr) }, { $set: { eloActual: elo } });
+  }
+}
+
 // ── API: JUGADORES ──────────────────────────────────────────────────────────
 app.get("/api/jugadores", async (req, res) => {
   try {
-    const jugadores = await db
-      .collection("jugadores")
+    const jugadores = await db.collection("jugadores")
       .find({}, { projection: { nombre: 1, eloActual: 1 } })
       .sort({ nombre: 1 })
       .toArray();
@@ -67,12 +168,9 @@ app.get("/api/jugadores", async (req, res) => {
 });
 
 // ── API: STATS ───────────────────────────────────────────────────────────────
-
-// Ranking ELO
 app.get("/api/stats/elo", async (req, res) => {
   try {
-    const data = await db
-      .collection("jugadores")
+    const data = await db.collection("jugadores")
       .find({}, { projection: { nombre: 1, eloActual: 1 } })
       .sort({ eloActual: -1 })
       .toArray();
@@ -82,7 +180,6 @@ app.get("/api/stats/elo", async (req, res) => {
   }
 });
 
-// Win rate general
 app.get("/api/stats/winrate", async (req, res) => {
   try {
     const data = await db.collection("partidos").aggregate([
@@ -118,7 +215,6 @@ app.get("/api/stats/winrate", async (req, res) => {
   }
 });
 
-// Mejores parejas
 app.get("/api/stats/parejas", async (req, res) => {
   try {
     const data = await db.collection("partidos").aggregate([
@@ -172,7 +268,6 @@ app.get("/api/stats/parejas", async (req, res) => {
   }
 });
 
-// Últimos torneos
 app.get("/api/stats/torneos", async (req, res) => {
   try {
     const torneos = await db.collection("torneos").aggregate([
@@ -183,12 +278,12 @@ app.get("/api/stats/torneos", async (req, res) => {
       { $unwind: { path: "$gj", preserveNullAndEmptyArrays: true } },
       {
         $group: {
-          _id:        "$_id",
-          nombre:     { $first: "$nombre" },
-          fecha:      { $first: "$fecha" },
-          formato:    { $first: "$formato" },
-          modalidad:  { $first: "$modalidad" },
-          ganadores:  { $push: "$gj.nombre" },
+          _id:       "$_id",
+          nombre:    { $first: "$nombre" },
+          fecha:     { $first: "$fecha" },
+          formato:   { $first: "$formato" },
+          modalidad: { $first: "$modalidad" },
+          ganadores: { $push: "$gj.nombre" },
         },
       },
       { $sort: { fecha: -1 } },
@@ -199,7 +294,6 @@ app.get("/api/stats/torneos", async (req, res) => {
   }
 });
 
-// Win rate en finales
 app.get("/api/stats/finales", async (req, res) => {
   try {
     const data = await db.collection("partidos").aggregate([
@@ -235,51 +329,54 @@ app.get("/api/stats/finales", async (req, res) => {
   }
 });
 
-// ── API: ENVIAR TORNEO (va a pendientes) ────────────────────────────────────
+// ── API: ENVIAR PENDIENTE ────────────────────────────────────────────────────
 app.post("/api/pendientes", async (req, res) => {
   try {
-    const { torneo, partidos, enviadoPor } = req.body;
+    const body = req.body;
+    const { tipo, enviadoPor } = body;
 
-    if (!torneo || !partidos || !enviadoPor) {
-      return res.status(400).json({ error: "Faltan campos requeridos" });
+    if (!tipo || !enviadoPor) {
+      return res.status(400).json({ error: "Faltan campos: tipo y enviadoPor son requeridos" });
     }
 
-    await db.collection("pendientes").insertOne({
-      torneo,
-      partidos,
-      enviadoPor,
-      estado:      "pendiente",
-      fechaEnvio:  new Date(),
-    });
+    if (tipo === "torneo") {
+      const { torneo, partidos } = body;
+      if (!torneo || !partidos?.length) {
+        return res.status(400).json({ error: "Faltan torneo o partidos" });
+      }
+      await db.collection("pendientes").insertOne({
+        tipo, torneo, partidos, enviadoPor,
+        estado: "pendiente", fechaEnvio: new Date(),
+      });
 
-    res.json({ ok: true, mensaje: "Torneo enviado. Marco lo revisará antes de publicarlo." });
+    } else if (tipo === "partido_suelto") {
+      const { fecha, modalidad, equipoA, equipoB, ganador } = body;
+      if (!fecha || !modalidad || !equipoA?.length || !equipoB?.length || !ganador) {
+        return res.status(400).json({ error: "Faltan campos del partido" });
+      }
+      await db.collection("pendientes").insertOne({
+        tipo, enviadoPor, fecha, modalidad, equipoA, equipoB, ganador,
+        estado: "pendiente", fechaEnvio: new Date(),
+      });
+
+    } else {
+      return res.status(400).json({ error: "Tipo desconocido: " + tipo });
+    }
+
+    res.json({ ok: true, mensaje: "Enviado. Marco lo revisará antes de publicarlo." });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
 // ── API: ADMIN ───────────────────────────────────────────────────────────────
-
 app.get("/api/admin/pendientes", adminAuth, async (req, res) => {
   try {
-    const data = await db
-      .collection("pendientes")
+    const data = await db.collection("pendientes")
       .find({ estado: "pendiente" })
       .sort({ fechaEnvio: -1 })
       .toArray();
     res.json(data);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// Borrar pendientes ya procesados (aprobados o rechazados)
-app.delete("/api/admin/pendientes/procesados", adminAuth, async (req, res) => {
-  try {
-    const result = await db.collection("pendientes").deleteMany({
-      estado: { $in: ["aprobado", "rechazado"] },
-    });
-    res.json({ ok: true, borrados: result.deletedCount });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -299,77 +396,103 @@ app.post("/api/admin/rechazar/:id", adminAuth, async (req, res) => {
 
 app.post("/api/admin/aprobar/:id", adminAuth, async (req, res) => {
   try {
-    const pendiente = await db
-      .collection("pendientes")
+    const pendiente = await db.collection("pendientes")
       .findOne({ _id: new ObjectId(req.params.id) });
 
     if (!pendiente) return res.status(404).json({ error: "No encontrado" });
 
-    await procesarTorneo(pendiente);
+    if (pendiente.tipo === "partido_suelto") {
+      await procesarPartidoSuelto(pendiente);
+    } else {
+      await procesarTorneo(pendiente);
+    }
 
     await db.collection("pendientes").updateOne(
       { _id: new ObjectId(req.params.id) },
       { $set: { estado: "aprobado", fechaResolucion: new Date() } }
     );
 
-    res.json({ ok: true, mensaje: "Torneo aprobado y publicado." });
+    res.json({ ok: true, mensaje: "Aprobado y publicado." });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// ── LÓGICA DE APROBACIÓN ─────────────────────────────────────────────────────
+// Borrar pendientes ya procesados
+app.delete("/api/admin/pendientes/procesados", adminAuth, async (req, res) => {
+  try {
+    const result = await db.collection("pendientes").deleteMany({
+      estado: { $in: ["aprobado", "rechazado"] },
+    });
+    res.json({ ok: true, borrados: result.deletedCount });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── LÓGICA: PARTIDO SUELTO ───────────────────────────────────────────────────
+async function procesarPartidoSuelto(pendiente) {
+  const { equipoA: slotsA, equipoB: slotsB, ganador, fecha } = pendiente;
+
+  // 1. Resolver jugadores
+  const idMap = await resolverSlots([...slotsA, ...slotsB]);
+  const equipoA = slotsA.map(s => idMap[s]);
+  const equipoB = slotsB.map(s => idMap[s]);
+
+  // 2. Obtener ELOs actuales
+  const todosIds = [...equipoA, ...equipoB];
+  const { eloMap, partidosJugados } = await obtenerElos(todosIds);
+
+  // 3. Calcular ELO
+  const avgA  = equipoA.reduce((s, id) => s + eloMap[id.toString()], 0) / equipoA.length;
+  const avgB  = equipoB.reduce((s, id) => s + eloMap[id.toString()], 0) / equipoB.length;
+  const expA  = eloEsperado(avgA, avgB);
+  const resA  = ganador === "A" ? 1 : 0;
+
+  // 4. Insertar partido (sin torneoId)
+  const partidoId = new ObjectId();
+  await db.collection("partidos").insertOne({
+    _id:         partidoId,
+    fecha:       new Date(fecha),
+    ronda:       "partido_suelto",
+    equipoA,
+    equipoB,
+    ganador,
+    eloSnapshot: { promedioA: Math.round(avgA), promedioB: Math.round(avgB) },
+  });
+
+  // 5. Registrar ELO historial y actualizar jugadores
+  const histA = calcularYRegistrarElo(equipoA, expA, resA, false, eloMap, partidosJugados, partidoId, null, new Date(fecha), "partido_suelto");
+  const histB = calcularYRegistrarElo(equipoB, 1 - expA, 1 - resA, false, eloMap, partidosJugados, partidoId, null, new Date(fecha), "partido_suelto");
+
+  const historial = [...histA, ...histB].map(h => {
+    const entry = { ...h };
+    delete entry.torneoId; // no hay torneo para partidos sueltos
+    return entry;
+  });
+
+  if (historial.length) await db.collection("elo_historial").insertMany(historial);
+  await actualizarElosEnDB(eloMap);
+}
+
+// ── LÓGICA: TORNEO ───────────────────────────────────────────────────────────
 async function procesarTorneo(pendiente) {
   const { torneo, partidos } = pendiente;
 
-  // 1. Resolver jugadores: crear nuevos (NEW:Nombre) y mapear existentes a ObjectId
-  const idMap = {}; // "NEW:Nombre" o idString => ObjectId resuelto
-
-  // Recolectar todos los slots: de equipos del torneo (modo torneo)
-  // y de los partidos (necesario para modo sueltos donde torneo.equipos = [])
+  // 1. Resolver jugadores de equipos + partidos
   const todosSlots = [...new Set([
     ...torneo.equipos.flat(),
     ...partidos.flatMap(p => [...p.equipoA, ...p.equipoB]),
   ])];
 
-  for (const slot of todosSlots) {
-    if (slot.startsWith("NEW:")) {
-      const nombre = slot.slice(4).trim();
-      // Verificar que no exista ya
-      const existe = await db.collection("jugadores").findOne({ nombre: { $regex: new RegExp("^" + nombre + "$", "i") } });
-      if (existe) {
-        idMap[slot] = existe._id;
-      } else {
-        const nuevoId = new ObjectId();
-        await db.collection("jugadores").insertOne({
-          _id: nuevoId, nombre, eloActual: 1200, activo: true, fechaRegistro: new Date(),
-        });
-        idMap[slot] = nuevoId;
-      }
-    } else {
-      if (!slot || typeof slot !== "string" || !/^[a-f\d]{24}$/i.test(slot)) {
-        throw new Error(`Slot inválido en pendiente: "${slot}" — no es un ObjectId de 24 caracteres hex. Revisá los datos del formulario.`);
-      }
-      idMap[slot] = new ObjectId(slot);
-    }
-  }
-
+  const idMap = await resolverSlots(todosSlots);
   const resolverEquipo = (eq) => eq.map(slot => idMap[slot]);
 
-  // Obtener ELO de todos los jugadores
+  // 2. Obtener ELOs actuales
   const todosIds = Object.values(idMap);
-  const jugadoresDB = await db.collection("jugadores").find({ _id: { $in: todosIds } }).toArray();
+  const { eloMap, partidosJugados } = await obtenerElos(todosIds);
 
-  const eloMap = {};
-  const partidosJugados = {};
-  for (const j of jugadoresDB) {
-    eloMap[j._id.toString()] = j.eloActual;
-    partidosJugados[j._id.toString()] = await db.collection("partidos").countDocuments({
-      $or: [{ equipoA: j._id }, { equipoB: j._id }],
-    });
-  }
-
-  // 2. Insertar torneo
+  // 3. Insertar torneo
   const torneoId = new ObjectId();
   await db.collection("torneos").insertOne({
     _id:       torneoId,
@@ -379,22 +502,17 @@ async function procesarTorneo(pendiente) {
     modalidad: torneo.modalidad,
     estado:    "finalizado",
     equipos:   torneo.equipos.map(resolverEquipo),
-    ganador:   torneo.ganador.map(slot => idMap[slot]),
+    ganador:   (torneo.ganador ?? []).map(slot => idMap[slot]),
   });
 
-  // 3. Procesar cada partido con ELO
+  // 4. Procesar partidos con ELO
   for (const partido of partidos) {
-    const equipoA = resolverEquipo(partido.equipoA);
-    const equipoB = resolverEquipo(partido.equipoB);
-
-    const avgA = equipoA.reduce((s, id) => s + eloMap[id.toString()], 0) / equipoA.length;
-    const avgB = equipoB.reduce((s, id) => s + eloMap[id.toString()], 0) / equipoB.length;
-
-    const expA   = eloEsperado(avgA, avgB);
-    const expB   = 1 - expA;
-    const resA   = partido.ganador === "A" ? 1 : 0;
-    const resB   = 1 - resA;
-    const esFin  = RONDAS_FIN.has(partido.ronda);
+    const equipoA  = resolverEquipo(partido.equipoA);
+    const equipoB  = resolverEquipo(partido.equipoB);
+    const avgA     = equipoA.reduce((s, id) => s + eloMap[id.toString()], 0) / equipoA.length;
+    const avgB     = equipoB.reduce((s, id) => s + eloMap[id.toString()], 0) / equipoB.length;
+    const expA     = eloEsperado(avgA, avgB);
+    const resA     = partido.ganador === "A" ? 1 : 0;
 
     const partidoId = new ObjectId();
     await db.collection("partidos").insertOne({
@@ -408,71 +526,19 @@ async function procesarTorneo(pendiente) {
       eloSnapshot: { promedioA: Math.round(avgA), promedioB: Math.round(avgB) },
     });
 
-    const historial = [];
+    const histA = calcularYRegistrarElo(equipoA, expA, resA, false, eloMap, partidosJugados, partidoId, torneoId, new Date(torneo.fecha), partido.ronda);
+    const histB = calcularYRegistrarElo(equipoB, 1 - expA, 1 - resA, false, eloMap, partidosJugados, partidoId, torneoId, new Date(torneo.fecha), partido.ronda);
 
-    const actualizarElo = (ids, exp, res) => {
-      for (const id of ids) {
-        const idStr = id.toString();
-        const k = esFin ? K_FINAL : partidosJugados[idStr] >= UMBRAL_VET ? K_VET : K_NORMAL;
-        const nuevo = Math.round(eloMap[idStr] + k * (res - exp));
-        historial.push({
-          jugadorId:   id,
-          eloAnterior: eloMap[idStr],
-          eloNuevo:    nuevo,
-          delta:       nuevo - eloMap[idStr],
-          partidoId,
-          torneoId,
-          fecha:       new Date(torneo.fecha),
-          ronda:       partido.ronda,
-        });
-        eloMap[idStr] = nuevo;
-        partidosJugados[idStr]++;
-      }
-    };
-
-    actualizarElo(equipoA, expA, resA);
-    actualizarElo(equipoB, expB, resB);
-
-    await db.collection("elo_historial").insertMany(historial);
+    await db.collection("elo_historial").insertMany([...histA, ...histB]);
   }
 
-  // 4. Actualizar ELO final de cada jugador
-  for (const [idStr, elo] of Object.entries(eloMap)) {
-    await db
-      .collection("jugadores")
-      .updateOne({ _id: new ObjectId(idStr) }, { $set: { eloActual: elo } });
-  }
+  // 5. Actualizar ELOs finales
+  await actualizarElosEnDB(eloMap);
 }
 
 // ── ARRANQUE ─────────────────────────────────────────────────────────────────
-// El servidor arranca siempre en el puerto. Si MongoDB falla, reintenta cada 10s.
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server corriendo en puerto ${PORT}`);
 });
 
-async function conectarConReintento() {
-  const maxIntentos = 10;
-  for (let i = 1; i <= maxIntentos; i++) {
-    try {
-      const client = new MongoClient(MONGO_URI, {
-        tls: true,
-        serverSelectionTimeoutMS: 10000,
-      });
-      await client.connect();
-      db = client.db(DB_NAME);
-      console.log("✅ Conectado a MongoDB Atlas");
-      return;
-    } catch (err) {
-      console.error(`❌ Intento ${i}/${maxIntentos} fallido:`, err.message);
-      if (i < maxIntentos) {
-        console.log("   Reintentando en 10 segundos...");
-        await new Promise(r => setTimeout(r, 10000));
-      } else {
-        console.error("No se pudo conectar a MongoDB después de varios intentos.");
-      }
-    }
-  }
-}
-
 conectarConReintento();
-  
