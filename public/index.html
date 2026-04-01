@@ -14,6 +14,9 @@
     .badge-2v2        { background:#0ea5e922; color:#38bdf8; border:1px solid #0ea5e955; }
     .badge-3v3        { background:#f59e0b22; color:#fbbf24; border:1px solid #f59e0b55; }
     .badge-individual { background:#ec489922; color:#f472b6; border:1px solid #ec489955; }
+    .badge-suelto     { background:#6366f122; color:#818cf8; border:1px solid #6366f155; }
+    .badge-torneo     { background:#f9731622; color:#fb923c; border:1px solid #f9731655; }
+    .badge-final      { background:#eab30822; color:#fbbf24; border:1px solid #eab30855; }
     .elo-bar { height:6px; background:#f97316; border-radius:3px; transition:width 0.6s ease; }
   </style>
 </head>
@@ -22,7 +25,7 @@
   <!-- HEADER -->
   <header class="border-b border-slate-700 px-6 py-4 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <span class="text-3xl">🃏</span>
+      <span class="text-3xl">&#x1F0CF;</span>
       <div>
         <h1 class="text-xl font-bold text-white">Truco Stats</h1>
         <p class="text-xs text-slate-400">Historial de torneos entre amigos</p>
@@ -30,7 +33,7 @@
     </div>
     <a href="/cargar.html"
        class="bg-orange-500 hover:bg-orange-400 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
-      + Cargar torneo
+      + Cargar resultado
     </a>
   </header>
 
@@ -38,7 +41,7 @@
 
     <!-- RANKING ELO -->
     <section>
-      <h2 class="text-lg font-bold text-white mb-4">🏆 Ranking ELO</h2>
+      <h2 class="text-lg font-bold text-white mb-4">Ranking ELO</h2>
       <div class="card rounded-xl overflow-hidden">
         <div id="elo-loading" class="p-8 text-center text-slate-400">Cargando...</div>
         <table id="elo-table" class="w-full hidden">
@@ -60,7 +63,7 @@
 
       <!-- WIN RATE GENERAL -->
       <section>
-        <h2 class="text-lg font-bold text-white mb-4">📊 Win Rate general</h2>
+        <h2 class="text-lg font-bold text-white mb-4">Win Rate general</h2>
         <div class="card rounded-xl overflow-hidden">
           <div id="wr-loading" class="p-8 text-center text-slate-400">Cargando...</div>
           <table id="wr-table" class="w-full hidden">
@@ -80,7 +83,7 @@
 
       <!-- WIN RATE EN FINALES -->
       <section>
-        <h2 class="text-lg font-bold text-white mb-4">🎯 Clutch (semifinales + finales)</h2>
+        <h2 class="text-lg font-bold text-white mb-4">Clutch (semifinales + finales)</h2>
         <div class="card rounded-xl overflow-hidden">
           <div id="fin-loading" class="p-8 text-center text-slate-400">Cargando...</div>
           <table id="fin-table" class="w-full hidden">
@@ -101,7 +104,7 @@
 
     <!-- MEJORES PAREJAS -->
     <section>
-      <h2 class="text-lg font-bold text-white mb-4">🤝 Mejores parejas</h2>
+      <h2 class="text-lg font-bold text-white mb-4">Mejores parejas</h2>
       <div class="card rounded-xl overflow-hidden">
         <div id="par-loading" class="p-8 text-center text-slate-400">Cargando...</div>
         <table id="par-table" class="w-full hidden">
@@ -118,32 +121,46 @@
       </div>
     </section>
 
-    <!-- ÚLTIMOS TORNEOS -->
+    <!-- ULTIMOS TORNEOS -->
     <section>
-      <h2 class="text-lg font-bold text-white mb-4">📅 Últimos torneos</h2>
+      <h2 class="text-lg font-bold text-white mb-4">Ultimos torneos</h2>
       <div id="torneos-loading" class="card rounded-xl p-8 text-center text-slate-400">Cargando...</div>
       <div id="torneos-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- ULTIMOS PARTIDOS -->
+    <section>
+      <h2 class="text-lg font-bold text-white mb-4">Ultimos partidos</h2>
+      <div class="card rounded-xl overflow-hidden">
+        <div id="partidos-loading" class="p-8 text-center text-slate-400">Cargando...</div>
+        <div id="partidos-list" class="hidden divide-y divide-slate-700/50"></div>
+      </div>
     </section>
 
   </main>
 
   <footer class="text-center py-6 text-slate-600 text-xs">
-    Truco Stats · <a href="/admin.html" class="hover:text-slate-400">Admin</a>
+    Truco Stats &middot; <a href="/admin.html" class="hover:text-slate-400">Admin</a>
   </footer>
 
 <script>
 const ELO_MAX = 1400, ELO_MIN = 1000;
-
-const MEDALS = ["🥇","🥈","🥉"];
+const MEDALS = ["\u{1F947}","\u{1F948}","\u{1F949}"];
 
 const FORMATO_LABEL = {
-  liga: "Liga", eliminacion_directa: "Eliminación", todos_contra_todos: "Todos vs Todos"
+  liga: "Liga", eliminacion_directa: "Eliminacion", todos_contra_todos: "Todos vs Todos"
 };
 const FORMATO_CLASS = {
   liga: "badge-liga", eliminacion_directa: "badge-elim", todos_contra_todos: "badge-todos"
 };
 const MOD_CLASS = {
   "2v2": "badge-2v2", "3v3": "badge-3v3", individual: "badge-individual"
+};
+const TIPO_PARTIDO_LABEL = {
+  partido_suelto: "Suelto", torneo: "Torneo", final: "Final"
+};
+const TIPO_PARTIDO_CLASS = {
+  partido_suelto: "badge-suelto", torneo: "badge-torneo", final: "badge-final"
 };
 
 function badge(text, cls) {
@@ -163,9 +180,8 @@ async function loadElo() {
   const table   = document.getElementById("elo-table");
   const tbody   = document.getElementById("elo-body");
 
-  if (!data.length) { loading.textContent = "Sin datos todavía."; return; }
+  if (!data.length) { loading.textContent = "Sin datos todavia."; return; }
 
-  const max = data[0].eloActual;
   tbody.innerHTML = data.map((j, i) => {
     const pct = Math.round(((j.eloActual - ELO_MIN) / (ELO_MAX - ELO_MIN)) * 100);
     const medal = MEDALS[i] ?? `<span class="text-slate-500">${i+1}</span>`;
@@ -256,11 +272,11 @@ async function loadTorneos() {
   const loading = document.getElementById("torneos-loading");
   const grid    = document.getElementById("torneos-grid");
 
-  if (!data.length) { loading.textContent = "Sin torneos todavía."; return; }
+  if (!data.length) { loading.textContent = "Sin torneos todavia."; return; }
 
   grid.innerHTML = data.map(t => {
     const fecha = new Date(t.fecha).toLocaleDateString("es-AR", { day:"2-digit", month:"short", year:"numeric" });
-    const ganadores = t.ganadores?.filter(Boolean).join(" + ") || "—";
+    const ganadores = t.ganadorNombres?.filter(Boolean).join(" + ") || "—";
     return `
       <div class="card rounded-xl p-4 space-y-3">
         <div class="flex items-start justify-between gap-2">
@@ -273,7 +289,7 @@ async function loadTorneos() {
         </div>
         <div class="border-t border-slate-700 pt-2">
           <p class="text-xs text-slate-400">Ganador</p>
-          <p class="font-semibold text-orange-400">🏆 ${ganadores}</p>
+          <p class="font-semibold text-orange-400">${ganadores}</p>
         </div>
       </div>`;
   }).join("");
@@ -282,8 +298,47 @@ async function loadTorneos() {
   grid.classList.remove("hidden");
 }
 
+// ── PARTIDOS RECIENTES ──
+async function loadPartidos() {
+  const data = await fetch("/api/stats/partidos").then(r => r.json());
+  const loading = document.getElementById("partidos-loading");
+  const list    = document.getElementById("partidos-list");
+
+  if (!data.length) { loading.textContent = "Sin partidos todavia."; return; }
+
+  list.innerHTML = data.map(p => {
+    const fecha = new Date(p.fecha).toLocaleDateString("es-AR", { day:"2-digit", month:"short", year:"numeric" });
+    const eqA = p.equipoANombres?.join(" + ") || "?";
+    const eqB = p.equipoBNombres?.join(" + ") || "?";
+    const ganador = p.ganadorNombres?.join(" + ") || "?";
+    const tipo = TIPO_PARTIDO_LABEL[p.tipoPartido] || p.tipoPartido;
+    const tipoCls = TIPO_PARTIDO_CLASS[p.tipoPartido] || "";
+    const torneoLabel = p.torneoNombre ? ` - ${p.torneoNombre}` : "";
+
+    return `
+      <div class="px-4 py-3 hover:bg-slate-700/30 transition">
+        <div class="flex items-center justify-between mb-1">
+          <div class="flex items-center gap-2">
+            ${badge(tipo, tipoCls)}
+            ${p.ronda && p.ronda !== "partido_suelto" ? `<span class="text-xs text-slate-500">${p.ronda}${torneoLabel}</span>` : ""}
+          </div>
+          <span class="text-xs text-slate-500">${fecha}</span>
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="${ganador === eqA ? 'text-green-400 font-bold' : 'text-slate-300'}">${eqA}</span>
+          <span class="text-slate-600">vs</span>
+          <span class="${ganador === eqB ? 'text-green-400 font-bold' : 'text-slate-300'}">${eqB}</span>
+        </div>
+        <div class="text-xs text-orange-400 mt-1">Ganador: ${ganador}</div>
+      </div>`;
+  }).join("");
+
+  loading.classList.add("hidden");
+  list.classList.remove("hidden");
+}
+
 // Cargar todo en paralelo
-Promise.all([loadElo(), loadWinRate(), loadFinales(), loadParejas(), loadTorneos()]);
+Promise.all([loadElo(), loadWinRate(), loadFinales(), loadParejas(), loadTorneos(), loadPartidos()]);
 </script>
 </body>
 </html>

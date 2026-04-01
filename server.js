@@ -92,7 +92,10 @@ async function obtenerElos(ids) {
   for (const j of jugadoresDB) {
     eloMap[j._id.toString()]  = j.eloActual;
     jugados[j._id.toString()] = await db.collection("partidos").countDocuments({
-      $or: [{ equipoA: j._id }, { equipoB: j._id }],
+      $or: [
+        { equipoA: j._id },
+        { equipoB: j._id },
+      ],
     });
   }
   return { eloMap, jugados };
@@ -118,6 +121,17 @@ async function actualizarElosDB(eloMap) {
     await db.collection("jugadores").updateOne({ _id: new ObjectId(s) }, { $set: { eloActual: elo } });
 }
 
+// ── Helper: resolver nombres de un array de IDs ──────────────────────────────
+async function resolverNombres(ids) {
+  if (!ids || !ids.length) return [];
+  const jugadores = await db.collection("jugadores")
+    .find({ _id: { $in: ids.map(id => typeof id === "string" ? new ObjectId(id) : id) } })
+    .toArray();
+  const map = {};
+  for (const j of jugadores) map[j._id.toString()] = j.nombre;
+  return ids.map(id => map[(typeof id === "string" ? id : id.toString())] || "Desconocido");
+}
+
 // ── API: JUGADORES ────────────────────────────────────────────────────────────
 app.get("/api/jugadores", async (req, res) => {
   try {
@@ -141,15 +155,26 @@ app.get("/api/stats/elo", async (req, res) => {
 app.get("/api/stats/winrate", async (req, res) => {
   try {
     const data = await db.collection("partidos").aggregate([
-      { $addFields: { ganadores: { $cond: [{ $eq: ["$ganador","A"] },"$equipoA","$equipoB"] }, todos: { $setUnion: ["$equipoA","$equipoB"] } } },
+      { $addFields: {
+          todos: { $setUnion: ["$equipoA", "$equipoB"] }
+      }},
       { $unwind: "$todos" },
-      { $addFields: { gano: { $in: ["$todos","$ganadores"] } } },
-      { $group: { _id:"$todos", partidos:{ $sum:1 }, victorias:{ $sum:{ $cond:["$gano",1,0] } } } },
-      { $addFields: { derrotas:{ $subtract:["$partidos","$victorias"] }, winRate:{ $round:[{ $multiply:[{ $divide:["$victorias","$partidos"] },100] },1] } } },
-      { $lookup: { from:"jugadores", localField:"_id", foreignField:"_id", as:"j" } },
+      { $addFields: {
+          gano: { $in: ["$todos", "$equipoGanador"] }
+      }},
+      { $group: {
+          _id: "$todos",
+          partidos: { $sum: 1 },
+          victorias: { $sum: { $cond: ["$gano", 1, 0] } }
+      }},
+      { $addFields: {
+          derrotas: { $subtract: ["$partidos", "$victorias"] },
+          winRate: { $round: [{ $multiply: [{ $divide: ["$victorias", "$partidos"] }, 100] }, 1] }
+      }},
+      { $lookup: { from: "jugadores", localField: "_id", foreignField: "_id", as: "j" } },
       { $unwind: "$j" },
-      { $project: { nombre:"$j.nombre", partidos:1, victorias:1, derrotas:1, winRate:1 } },
-      { $sort: { winRate:-1 } },
+      { $project: { nombre: "$j.nombre", partidos: 1, victorias: 1, derrotas: 1, winRate: 1 } },
+      { $sort: { winRate: -1 } },
     ]).toArray();
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -158,15 +183,30 @@ app.get("/api/stats/winrate", async (req, res) => {
 app.get("/api/stats/parejas", async (req, res) => {
   try {
     const data = await db.collection("partidos").aggregate([
-      { $project: { equipos: [{ jugadores:"$equipoA", gano:{ $eq:["$ganador","A"] } }, { jugadores:"$equipoB", gano:{ $eq:["$ganador","B"] } }] } },
+      // Para cada partido, crear dos entradas: una por equipoA y una por equipoB
+      { $project: {
+          equipos: [
+            { jugadores: "$equipoA", gano: { $eq: ["$equipoA", "$equipoGanador"] } },
+            { jugadores: "$equipoB", gano: { $eq: ["$equipoB", "$equipoGanador"] } }
+          ]
+      }},
       { $unwind: "$equipos" },
-      { $match: { "equipos.jugadores.1":{ $exists:true }, "equipos.jugadores.2":{ $exists:false } } },
-      { $addFields: { pareja:{ $cond:[{ $lt:[{ $arrayElemAt:["$equipos.jugadores",0] },{ $arrayElemAt:["$equipos.jugadores",1] }] },"$equipos.jugadores",[{ $arrayElemAt:["$equipos.jugadores",1] },{ $arrayElemAt:["$equipos.jugadores",0] }]] }, gano:"$equipos.gano" } },
-      { $group: { _id:"$pareja", partidos:{ $sum:1 }, victorias:{ $sum:{ $cond:["$gano",1,0] } } } },
-      { $addFields: { winRate:{ $round:[{ $multiply:[{ $divide:["$victorias","$partidos"] },100] },1] } } },
-      { $lookup: { from:"jugadores", localField:"_id", foreignField:"_id", as:"jugadores" } },
-      { $addFields: { nombres:{ $map:{ input:"$jugadores", as:"j", in:"$$j.nombre" } } } },
-      { $sort: { winRate:-1, partidos:-1 } }, { $limit: 10 },
+      // Solo parejas (2 jugadores)
+      { $match: { "equipos.jugadores.1": { $exists: true }, "equipos.jugadores.2": { $exists: false } } },
+      { $addFields: {
+          pareja: { $cond: [
+            { $lt: [{ $arrayElemAt: ["$equipos.jugadores", 0] }, { $arrayElemAt: ["$equipos.jugadores", 1] }] },
+            "$equipos.jugadores",
+            [{ $arrayElemAt: ["$equipos.jugadores", 1] }, { $arrayElemAt: ["$equipos.jugadores", 0] }]
+          ]},
+          gano: "$equipos.gano"
+      }},
+      { $group: { _id: "$pareja", partidos: { $sum: 1 }, victorias: { $sum: { $cond: ["$gano", 1, 0] } } } },
+      { $addFields: { winRate: { $round: [{ $multiply: [{ $divide: ["$victorias", "$partidos"] }, 100] }, 1] } } },
+      { $lookup: { from: "jugadores", localField: "_id", foreignField: "_id", as: "jugadores" } },
+      { $addFields: { nombres: { $map: { input: "$jugadores", as: "j", in: "$$j.nombre" } } } },
+      { $sort: { winRate: -1, partidos: -1 } },
+      { $limit: 10 },
     ]).toArray();
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -175,12 +215,23 @@ app.get("/api/stats/parejas", async (req, res) => {
 app.get("/api/stats/torneos", async (req, res) => {
   try {
     const data = await db.collection("torneos").aggregate([
-      { $sort: { fecha:-1 } }, { $limit: 10 },
-      { $unwind: { path:"$ganador", preserveNullAndEmptyArrays:true } },
-      { $lookup: { from:"jugadores", localField:"ganador", foreignField:"_id", as:"gj" } },
-      { $unwind: { path:"$gj", preserveNullAndEmptyArrays:true } },
-      { $group: { _id:"$_id", nombre:{ $first:"$nombre" }, fecha:{ $first:"$fecha" }, formato:{ $first:"$formato" }, modalidad:{ $first:"$modalidad" }, ganadores:{ $push:"$gj.nombre" } } },
-      { $sort: { fecha:-1 } },
+      { $sort: { fecha: -1 } },
+      { $limit: 10 },
+      // Resolver nombres del equipo ganador
+      { $lookup: {
+          from: "jugadores",
+          localField: "equipoGanador",
+          foreignField: "_id",
+          as: "ganadorInfo"
+      }},
+      { $addFields: {
+          ganadorNombres: { $map: { input: "$ganadorInfo", as: "j", in: "$$j.nombre" } }
+      }},
+      { $project: {
+          nombre: 1, fecha: 1, formato: 1, modalidad: 1,
+          ganadorNombres: 1,
+          equipoGanador: 1
+      }},
     ]).toArray();
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -189,16 +240,53 @@ app.get("/api/stats/torneos", async (req, res) => {
 app.get("/api/stats/finales", async (req, res) => {
   try {
     const data = await db.collection("partidos").aggregate([
-      { $match: { ronda: { $in: ["semifinal","final"] } } },
-      { $addFields: { ganadores:{ $cond:[{ $eq:["$ganador","A"] },"$equipoA","$equipoB"] }, todos:{ $setUnion:["$equipoA","$equipoB"] } } },
+      { $match: { ronda: { $in: ["semifinal", "final"] } } },
+      { $addFields: {
+          todos: { $setUnion: ["$equipoA", "$equipoB"] }
+      }},
       { $unwind: "$todos" },
-      { $addFields: { gano:{ $in:["$todos","$ganadores"] } } },
-      { $group: { _id:"$todos", finalesJugadas:{ $sum:1 }, finalesGanadas:{ $sum:{ $cond:["$gano",1,0] } } } },
-      { $addFields: { winRate:{ $round:[{ $multiply:[{ $divide:["$finalesGanadas","$finalesJugadas"] },100] },1] } } },
-      { $lookup: { from:"jugadores", localField:"_id", foreignField:"_id", as:"j" } },
+      { $addFields: {
+          gano: { $in: ["$todos", "$equipoGanador"] }
+      }},
+      { $group: {
+          _id: "$todos",
+          finalesJugadas: { $sum: 1 },
+          finalesGanadas: { $sum: { $cond: ["$gano", 1, 0] } }
+      }},
+      { $addFields: {
+          winRate: { $round: [{ $multiply: [{ $divide: ["$finalesGanadas", "$finalesJugadas"] }, 100] }, 1] }
+      }},
+      { $lookup: { from: "jugadores", localField: "_id", foreignField: "_id", as: "j" } },
       { $unwind: "$j" },
-      { $project: { nombre:"$j.nombre", finalesJugadas:1, finalesGanadas:1, winRate:1 } },
-      { $sort: { winRate:-1 } },
+      { $project: { nombre: "$j.nombre", finalesJugadas: 1, finalesGanadas: 1, winRate: 1 } },
+      { $sort: { winRate: -1 } },
+    ]).toArray();
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── API: PARTIDOS RECIENTES ──────────────────────────────────────────────────
+app.get("/api/stats/partidos", async (req, res) => {
+  try {
+    const data = await db.collection("partidos").aggregate([
+      { $sort: { fecha: -1 } },
+      { $limit: 20 },
+      // Resolver nombres de equipoA
+      { $lookup: { from: "jugadores", localField: "equipoA", foreignField: "_id", as: "equipoAInfo" } },
+      { $lookup: { from: "jugadores", localField: "equipoB", foreignField: "_id", as: "equipoBInfo" } },
+      { $lookup: { from: "jugadores", localField: "equipoGanador", foreignField: "_id", as: "ganadorInfo" } },
+      { $lookup: { from: "torneos", localField: "torneoId", foreignField: "_id", as: "torneoInfo" } },
+      { $addFields: {
+          equipoANombres: { $map: { input: "$equipoAInfo", as: "j", in: "$$j.nombre" } },
+          equipoBNombres: { $map: { input: "$equipoBInfo", as: "j", in: "$$j.nombre" } },
+          ganadorNombres: { $map: { input: "$ganadorInfo", as: "j", in: "$$j.nombre" } },
+          torneoNombre: { $arrayElemAt: ["$torneoInfo.nombre", 0] }
+      }},
+      { $project: {
+          fecha: 1, tipoPartido: 1, ronda: 1, torneoId: 1, torneoNombre: 1,
+          equipoANombres: 1, equipoBNombres: 1, ganadorNombres: 1,
+          eloSnapshot: 1
+      }},
     ]).toArray();
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -221,11 +309,11 @@ app.post("/api/pendientes", async (req, res) => {
       });
 
     } else if (tipo === "partido_suelto") {
-      const { fecha, modalidad, equipoA, equipoB, ganador } = req.body;
-      if (!fecha || !modalidad || !equipoA?.length || !equipoB?.length || !ganador)
-        return res.status(400).json({ error: "Partido incompleto: faltan fecha, modalidad, equipoA, equipoB o ganador" });
+      const { fecha, modalidad, equipoA, equipoB, equipoGanador } = req.body;
+      if (!fecha || !modalidad || !equipoA?.length || !equipoB?.length || !equipoGanador?.length)
+        return res.status(400).json({ error: "Partido incompleto: faltan fecha, modalidad, equipoA, equipoB o equipoGanador" });
       await db.collection("pendientes").insertOne({
-        tipo, enviadoPor, fecha, modalidad, equipoA, equipoB, ganador,
+        tipo, enviadoPor, fecha, modalidad, equipoA, equipoB, equipoGanador,
         estado: "pendiente", fechaEnvio: new Date(),
       });
 
@@ -242,7 +330,36 @@ app.get("/api/admin/pendientes", adminAuth, async (req, res) => {
   try {
     const data = await db.collection("pendientes")
       .find({ estado: "pendiente" }).sort({ fechaEnvio: -1 }).toArray();
-    res.json(data);
+
+    // Resolver nombres de jugadores para mostrar en admin
+    const allSlots = new Set();
+    for (const p of data) {
+      if (p.tipo === "torneo") {
+        for (const eq of (p.torneo?.equipos || [])) {
+          for (const s of eq) if (s && !s.startsWith("NEW:")) allSlots.add(s);
+        }
+        for (const s of (p.torneo?.ganador || [])) if (s && !s.startsWith("NEW:")) allSlots.add(s);
+        for (const partido of (p.partidos || [])) {
+          for (const s of partido.equipoA) if (s && !s.startsWith("NEW:")) allSlots.add(s);
+          for (const s of partido.equipoB) if (s && !s.startsWith("NEW:")) allSlots.add(s);
+        }
+      } else {
+        for (const s of (p.equipoA || [])) if (s && !s.startsWith("NEW:")) allSlots.add(s);
+        for (const s of (p.equipoB || [])) if (s && !s.startsWith("NEW:")) allSlots.add(s);
+        for (const s of (p.equipoGanador || [])) if (s && !s.startsWith("NEW:")) allSlots.add(s);
+      }
+    }
+
+    // Lookup nombres
+    const ids = [...allSlots].filter(s => /^[a-f\d]{24}$/i.test(s)).map(s => new ObjectId(s));
+    const jugadores = ids.length
+      ? await db.collection("jugadores").find({ _id: { $in: ids } }).toArray()
+      : [];
+    const nombreMap = {};
+    for (const j of jugadores) nombreMap[j._id.toString()] = j.nombre;
+
+    // Agregar nombreMap a la respuesta
+    res.json({ pendientes: data, nombreMap });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -290,23 +407,31 @@ app.delete("/api/admin/pendientes/procesados", adminAuth, async (req, res) => {
 
 // ── PROCESAR: PARTIDO SUELTO ──────────────────────────────────────────────────
 async function procesarPartidoSuelto(p) {
-  const { equipoA: slotsA, equipoB: slotsB, ganador, fecha } = p;
+  const { equipoA: slotsA, equipoB: slotsB, equipoGanador: slotsGanador, fecha } = p;
 
   const idMap  = await resolverSlots([...slotsA, ...slotsB]);
   const eqA    = slotsA.map(s => idMap[s]);
   const eqB    = slotsB.map(s => idMap[s]);
+  const eqGanador = slotsGanador.map(s => idMap[s]);
+
   const { eloMap, jugados } = await obtenerElos([...eqA, ...eqB]);
 
   const avgA = eqA.reduce((s, id) => s + eloMap[id.toString()], 0) / eqA.length;
   const avgB = eqB.reduce((s, id) => s + eloMap[id.toString()], 0) / eqB.length;
   const expA = eloEsperado(avgA, avgB);
-  const resA = ganador === "A" ? 1 : 0;
+
+  // Determinar si ganó A o B comparando los IDs
+  const ganadorEsA = eqGanador.every(id => eqA.some(a => a.toString() === id.toString()));
+  const resA = ganadorEsA ? 1 : 0;
   const fec  = new Date(fecha);
 
   const pid = new ObjectId();
   await db.collection("partidos").insertOne({
-    _id: pid, fecha: fec, ronda: "partido_suelto",
-    equipoA: eqA, equipoB: eqB, ganador,
+    _id: pid, fecha: fec,
+    tipoPartido: "partido_suelto",
+    ronda: "partido_suelto",
+    equipoA: eqA, equipoB: eqB,
+    equipoGanador: eqGanador,
     eloSnapshot: { promedioA: Math.round(avgA), promedioB: Math.round(avgB) },
   });
 
@@ -324,7 +449,8 @@ async function procesarTorneo(pendiente) {
 
   const todosSlots = [...new Set([
     ...torneo.equipos.flat(),
-    ...partidos.flatMap(p => [...p.equipoA, ...p.equipoB]),
+    ...(torneo.ganador || []),
+    ...partidos.flatMap(p => [...p.equipoA, ...p.equipoB, ...(p.equipoGanador || [])]),
   ])];
 
   const idMap       = await resolverSlots(todosSlots);
@@ -341,22 +467,34 @@ async function procesarTorneo(pendiente) {
     modalidad: torneo.modalidad,
     estado:    "finalizado",
     equipos:   torneo.equipos.map(resEquipo),
-    ganador:   (torneo.ganador ?? []).map(s => idMap[s]),
+    equipoGanador: (torneo.ganador ?? []).map(s => idMap[s]),
   });
 
   for (const p of partidos) {
     const eqA  = resEquipo(p.equipoA);
     const eqB  = resEquipo(p.equipoB);
+    const eqGanador = (p.equipoGanador || []).map(s => idMap[s]);
+
     const avgA = eqA.reduce((s, id) => s + eloMap[id.toString()], 0) / eqA.length;
     const avgB = eqB.reduce((s, id) => s + eloMap[id.toString()], 0) / eqB.length;
     const expA = eloEsperado(avgA, avgB);
-    const resA = p.ganador === "A" ? 1 : 0;
+
+    // Determinar si ganó A o B
+    const ganadorEsA = eqGanador.every(id => eqA.some(a => a.toString() === id.toString()));
+    const resA = ganadorEsA ? 1 : 0;
     const fec  = new Date(torneo.fecha);
+
+    // Determinar tipoPartido
+    const esRondaFinal = RONDAS_FIN.has(p.ronda);
+    const tipoPartido = p.ronda === "final" ? "final" : "torneo";
 
     const pid = new ObjectId();
     await db.collection("partidos").insertOne({
-      _id: pid, torneoId, fecha: fec, ronda: p.ronda,
-      equipoA: eqA, equipoB: eqB, ganador: p.ganador,
+      _id: pid, torneoId, fecha: fec,
+      tipoPartido,
+      ronda: p.ronda,
+      equipoA: eqA, equipoB: eqB,
+      equipoGanador: eqGanador,
       eloSnapshot: { promedioA: Math.round(avgA), promedioB: Math.round(avgB) },
     });
 
