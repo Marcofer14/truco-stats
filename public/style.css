@@ -1,0 +1,360 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRUCO STATS — TEMA NEOCLÁSICO
+   Paleta: midnight + oro antiguo + crema. Tipografía Cinzel + Cormorant.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg-deep:        #0a0e1a;
+  --bg-card-1:      #161b30;
+  --bg-card-2:      #11152a;
+  --bg-input:       #0a0e1a;
+  --bg-hover:       rgba(201, 164, 90, 0.06);
+  --gold:           #c9a45a;
+  --gold-bright:    #d4af37;
+  --gold-soft:      #9e7d39;
+  --gold-faint:     rgba(201, 164, 90, 0.25);
+  --gold-line:      rgba(201, 164, 90, 0.40);
+  --cream:          #e8e1cf;
+  --cream-muted:    #a39782;
+  --crimson:        #a02530;
+  --crimson-soft:   #c45055;
+  --serif:          'Cinzel', 'Times New Roman', serif;
+  --body:           'Cormorant Garamond', Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse at top,    rgba(201, 164, 90, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(160, 37, 48, 0.04)  0%, transparent 50%);
+  color: var(--cream);
+  font-family: var(--body);
+  font-size: 1.05rem;
+  min-height: 100vh;
+  margin: 0;
+}
+
+h1, h2, h3, .font-serif {
+  font-family: var(--serif);
+  letter-spacing: 0.1em;
+  color: var(--gold-bright);
+  font-weight: 700;
+}
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.1rem; text-transform: uppercase; }
+h3 { font-size: 0.95rem; }
+
+a { color: var(--gold-soft); transition: color 0.15s; }
+a:hover { color: var(--gold-bright); }
+
+/* ── HERO / HEADER ──────────────────────────────────────────────────────── */
+.hero {
+  border-bottom: 1px solid var(--gold-faint);
+  background: linear-gradient(180deg, rgba(0,0,0,0.4), transparent);
+  padding: 1.5rem 1.5rem;
+}
+
+/* ── ORNAMENTO ─────────────────────────────────────────────────────────── */
+.ornament {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.85rem; color: var(--gold-soft);
+  font-family: var(--serif); font-size: 0.62rem; letter-spacing: 0.35em;
+  margin: 0.25rem 0;
+  text-transform: uppercase;
+}
+.ornament::before, .ornament::after {
+  content: ''; flex: 1; max-width: 90px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
+}
+.ornament.left::before { display: none; }
+.ornament.left { justify-content: flex-start; }
+
+/* ── SECTION TITLE ─────────────────────────────────────────────────────── */
+.section-title {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 0.75rem; padding: 0 0.25rem;
+}
+.section-title h2 { margin: 0; }
+.section-title .meta {
+  font-size: 0.78rem; color: var(--cream-muted);
+  font-family: var(--body); font-style: italic;
+}
+
+/* ── CARDS ─────────────────────────────────────────────────────────────── */
+.card {
+  background: linear-gradient(180deg, var(--bg-card-1) 0%, var(--bg-card-2) 100%);
+  border: 1px solid var(--gold-faint);
+  box-shadow: 0 1px 0 rgba(201, 164, 90, 0.12) inset, 0 6px 20px rgba(0,0,0,0.30);
+  position: relative;
+  border-radius: 0;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 12px; right: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  pointer-events: none;
+}
+
+/* ── TABLES ────────────────────────────────────────────────────────────── */
+table.classic { width: 100%; border-collapse: collapse; }
+table.classic thead th {
+  background: rgba(201, 164, 90, 0.08);
+  color: var(--gold);
+  font-family: var(--serif);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--gold-line);
+  position: sticky; top: 0; z-index: 5;
+}
+table.classic tbody tr {
+  border-bottom: 1px solid rgba(201, 164, 90, 0.07);
+  transition: background 0.15s;
+}
+table.classic tbody tr:hover { background: var(--bg-hover); }
+table.classic tbody tr:last-child { border-bottom: 0; }
+table.classic tbody td {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.92rem;
+}
+
+/* ── SCROLLABLE ────────────────────────────────────────────────────────── */
+.scroll-y {
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-soft) var(--bg-deep);
+}
+.scroll-y.lg { max-height: 420px; }
+.scroll-y::-webkit-scrollbar { width: 6px; }
+.scroll-y::-webkit-scrollbar-track { background: var(--bg-deep); }
+.scroll-y::-webkit-scrollbar-thumb { background: var(--gold-soft); border-radius: 0; }
+.scroll-y::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* ── DIVISIONES DE ELO ─────────────────────────────────────────────────── */
+.division-badge {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.58rem;
+  font-family: var(--serif);
+  letter-spacing: 0.14em;
+  border: 1px solid;
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+  line-height: 1.5;
+  font-weight: 700;
+}
+.div-hierro    { color:#9ca3af; border-color:#9ca3af66; background:#9ca3af10; }
+.div-bronce    { color:#cd7f32; border-color:#cd7f3266; background:#cd7f3210; }
+.div-plata     { color:#d4d4d4; border-color:#d4d4d466; background:#d4d4d410; }
+.div-oro       { color:#d4af37; border-color:#d4af3766; background:#d4af3712; }
+.div-diamante  { color:#7dd3fc; border-color:#7dd3fc66; background:#7dd3fc12; }
+.div-campeon   { color:#f472b6; border-color:#f472b6aa; background:#f472b612; }
+
+/* ── ELO NUMERS + BAR ─────────────────────────────────────────────────── */
+.elo-num {
+  color: var(--gold-bright);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.elo-bar-track { height: 3px; background: rgba(201, 164, 90, 0.15); }
+.elo-bar-fill  { height: 100%; background: linear-gradient(90deg, var(--gold-soft), var(--gold-bright)); transition: width 0.6s ease; }
+
+/* ── BOTONES ──────────────────────────────────────────────────────────── */
+.btn-gold, .btn-ghost, .btn-danger, .btn-green, .btn-red {
+  font-family: var(--serif);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.55rem 1.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 0;
+  transition: all 0.2s;
+  cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.btn-gold {
+  background: linear-gradient(180deg, #b9893a, #8e6727);
+  color: #14110a;
+  border-color: var(--gold);
+}
+.btn-gold:hover {
+  background: linear-gradient(180deg, #d4af37, #b9893a);
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.4);
+  color: #14110a;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--cream-muted);
+  border-color: var(--gold-faint);
+}
+.btn-ghost:hover { color: var(--gold-bright); border-color: var(--gold); background: var(--bg-hover); }
+.btn-green {
+  background: linear-gradient(180deg, #16a34a, #14803c);
+  color: #f0fdf4; border-color: #16a34a;
+}
+.btn-green:hover { background: linear-gradient(180deg, #22c55e, #16a34a); }
+.btn-red, .btn-danger {
+  background: linear-gradient(180deg, var(--crimson), #7a1b24);
+  color: #fef2f2; border-color: var(--crimson);
+}
+.btn-red:hover, .btn-danger:hover { background: linear-gradient(180deg, var(--crimson-soft), var(--crimson)); }
+
+/* ── INPUTS ───────────────────────────────────────────────────────────── */
+.input {
+  background: var(--bg-input);
+  border: 1px solid var(--gold-faint);
+  color: var(--cream);
+  font-family: var(--body);
+  font-size: 0.95rem;
+  padding: 0.55rem 0.85rem;
+  width: 100%;
+  border-radius: 0;
+  transition: border-color 0.2s;
+}
+.input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold-faint); }
+.input::placeholder { color: var(--cream-muted); font-style: italic; }
+select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--gold-soft) 50%), linear-gradient(135deg, var(--gold-soft) 50%, transparent 50%); background-position: calc(100% - 18px) center, calc(100% - 13px) center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 2rem; }
+select.input option { background: var(--bg-card-1); color: var(--cream); }
+
+/* ── BADGES ───────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block; padding: 0.15rem 0.55rem;
+  font-size: 0.6rem; font-family: var(--serif);
+  letter-spacing: 0.14em; text-transform: uppercase;
+  border: 1px solid;
+}
+.badge-liga       { color:#86efac; border-color:#16a34a55; background:#16a34a11; }
+.badge-elim       { color:#fca5a5; border-color:#dc262655; background:#dc262611; }
+.badge-todos      { color:#c4b5fd; border-color:#7c3aed55; background:#7c3aed11; }
+.badge-sueltos    { color:#a5b4fc; border-color:#6366f155; background:#6366f111; }
+.badge-2v2        { color:#7dd3fc; border-color:#0ea5e955; background:#0ea5e911; }
+.badge-3v3        { color:#fbbf24; border-color:#f59e0b55; background:#f59e0b11; }
+.badge-individual { color:#f9a8d4; border-color:#ec489955; background:#ec489911; }
+.badge-suelto     { color:#a5b4fc; border-color:#6366f155; background:#6366f111; }
+.badge-torneo     { color:#fdba74; border-color:#ea580c55; background:#ea580c11; }
+.badge-final      { color:#fde047; border-color:#eab30855; background:#eab30811; }
+.tag-inactivo     { color:#94a3b8; border-color:#64748b55; background:#64748b15; padding:0.1rem 0.55rem; font-size:0.6rem; font-family:var(--serif); letter-spacing:0.12em; text-transform:uppercase; border:1px solid; }
+
+/* ── WIN RATE COLORS ──────────────────────────────────────────────────── */
+.wr-high { color: #86efac; font-weight: 600; }
+.wr-mid  { color: #facc15; font-weight: 600; }
+.wr-low  { color: #fca5a5; font-weight: 600; }
+
+/* ── TABS ─────────────────────────────────────────────────────────────── */
+.tab {
+  padding: 0.7rem 1.5rem;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  color: var(--cream-muted);
+  background: transparent;
+}
+.tab.active {
+  color: var(--gold-bright);
+  background: var(--bg-card-1);
+  border-color: var(--gold-faint);
+  border-bottom: 2px solid var(--gold);
+}
+.tab:not(.active):hover { color: var(--gold-soft); }
+
+/* ── STEP DOTS (cargar.html) ───────────────────────────────────────────── */
+.step-dot {
+  width: 2rem; height: 2rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif); font-size: 0.8rem; font-weight: 700;
+  border: 1px solid var(--gold-faint);
+  background: transparent; color: var(--cream-muted);
+  transition: all 0.2s;
+}
+.step-dot.active { background: var(--gold); border-color: var(--gold-bright); color: #14110a; box-shadow: 0 0 12px rgba(212, 175, 55, 0.4); }
+.step-dot.done   { background: rgba(201, 164, 90, 0.15); border-color: var(--gold); color: var(--gold-bright); }
+.step-line { flex: 1; height: 1px; background: var(--gold-faint); }
+.step-line.done { background: var(--gold); }
+
+/* ── COMBOBOX (cargar.html) ────────────────────────────────────────────── */
+.combo-wrap { position: relative; }
+.combo-input {
+  background: var(--bg-input);
+  border: 1px solid var(--gold-faint);
+  color: var(--cream);
+  padding: 0.55rem 0.85rem;
+  width: 100%;
+  font-size: 0.95rem;
+  font-family: var(--body);
+}
+.combo-input:focus { outline: none; border-color: var(--gold); }
+.combo-input.selected-existing { border-color: #86efac; color: #86efac; }
+.combo-input.selected-new      { border-color: var(--gold); color: var(--gold-bright); }
+.combo-dropdown {
+  position: absolute; z-index: 50; top: calc(100% + 2px); left: 0; right: 0;
+  background: var(--bg-card-1); border: 1px solid var(--gold);
+  max-height: 220px; overflow-y: auto; display: none;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+.combo-dropdown.open { display: block; }
+.combo-option {
+  padding: 0.55rem 0.85rem; font-size: 0.92rem; cursor: pointer;
+  display: flex; align-items: center; gap: 0.5rem;
+  border-bottom: 1px solid rgba(201, 164, 90, 0.08);
+}
+.combo-option:hover, .combo-option.active { background: var(--bg-hover); }
+.combo-option.new-opt { color: var(--gold-bright); border-top: 1px solid var(--gold-faint); font-style: italic; }
+.combo-option.new-opt:hover { background: rgba(201, 164, 90, 0.12); }
+
+/* ── MODAL ────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.75);
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.modal-overlay.open { display: flex; }
+.modal-card {
+  background: linear-gradient(180deg, var(--bg-card-1) 0%, var(--bg-card-2) 100%);
+  border: 1px solid var(--gold);
+  max-width: 28rem; width: 100%;
+  padding: 1.75rem;
+  box-shadow: 0 0 40px rgba(201, 164, 90, 0.15);
+  position: relative;
+}
+.modal-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 12px; right: 12px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
+}
+
+/* ── FOOTER ───────────────────────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--cream-muted);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--gold-faint);
+  margin-top: 2.5rem;
+}
+
+/* ── UTILIDADES ───────────────────────────────────────────────────────── */
+.text-muted { color: var(--cream-muted); }
+.text-gold  { color: var(--gold); }
+.text-gold-bright { color: var(--gold-bright); }
+.text-crimson { color: var(--crimson-soft); }
+.text-cream { color: var(--cream); }
+.italic { font-style: italic; }

@@ -54,26 +54,85 @@ function eloEsperado(a, b) {
   return 1 / (1 + Math.pow(10, (b - a) / 400));
 }
 
+// ── VALIDACIONES JUGADOR ─────────────────────────────────────────────────────
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+
+function validarUsername(u) {
+  if (typeof u !== "string" || !USERNAME_RE.test(u))
+    throw new Error(`Username inválido: "${u}". Debe ser 3-20 caracteres alfanuméricos o "_".`);
+}
+function validarNombreCompleto(n) {
+  if (typeof n !== "string" || n.trim().length < 2 || n.trim().length > 60)
+    throw new Error(`Nombre completo inválido: "${n}". Debe tener entre 2 y 60 caracteres.`);
+}
+
+// Parsea un slot "NEW:username|Nombre Completo" o legacy "NEW:nombre"
+function parsearSlotNuevo(slot) {
+  const payload = slot.slice(4);
+  let username, nombreCompleto;
+  if (payload.includes("|")) {
+    [username, nombreCompleto] = payload.split("|").map(s => (s ?? "").trim());
+  } else {
+    username = nombreCompleto = payload.trim();
+  }
+  validarUsername(username);
+  validarNombreCompleto(nombreCompleto);
+  return { username, nombreCompleto };
+}
+
+// Para validar formato en POST /api/pendientes (no toca la DB)
+function validarSlotsParaPendiente(slots) {
+  for (const slot of slots) {
+    if (typeof slot !== "string") throw new Error("Slot inválido (no es string).");
+    if (slot.startsWith("NEW:")) parsearSlotNuevo(slot);
+    else if (!/^[a-f\d]{24}$/i.test(slot)) throw new Error(`Slot "${slot}" no es ObjectId válido.`);
+  }
+}
+
 // ── HELPERS DE SLOT ───────────────────────────────────────────────────────────
-async function resolverSlots(slots) {
+async function resolverSlots(slots, ctx = {}) {
   const idMap  = {};
   const unicos = [...new Set(slots.filter(Boolean))];
   for (const slot of unicos) {
     if (typeof slot !== "string")
       throw new Error(`Slot inválido (no es string): ${JSON.stringify(slot)}`);
     if (slot.startsWith("NEW:")) {
-      const nombre = slot.slice(4).trim();
-      if (!nombre) throw new Error("Jugador nuevo sin nombre.");
+      const { username, nombreCompleto } = parsearSlotNuevo(slot);
       const existe = await db.collection("jugadores").findOne({
-        nombre: { $regex: new RegExp(`^${nombre}$`, "i") },
+        usernameLower: username.toLowerCase(),
       });
       if (existe) {
         idMap[slot] = existe._id;
       } else {
         const id = new ObjectId();
-        await db.collection("jugadores").insertOne({
-          _id: id, nombre, eloActual: 1200, activo: true, fechaRegistro: new Date(),
-        });
+        const ahora = new Date();
+        const doc = {
+          _id: id,
+          username,
+          usernameLower: username.toLowerCase(),
+          nombreCompleto,
+          eloActual: 1200,
+          activo: true,
+          fechaRegistro: ahora,
+          creadoPor: ctx.enviadoPor ?? null,
+          origen: {
+            tipo: ctx.tipo ?? null,
+            pendienteId: ctx.pendienteId ?? null,
+            fechaAprobacion: ahora,
+          },
+        };
+        try {
+          await db.collection("jugadores").insertOne(doc);
+        } catch (e) {
+          // Carrera contra el índice único: alguien creó el username entre el findOne y el insert
+          if (e.code === 11000) {
+            const fallback = await db.collection("jugadores").findOne({ usernameLower: username.toLowerCase() });
+            if (!fallback) throw e;
+            idMap[slot] = fallback._id;
+            continue;
+          }
+          throw e;
+        }
         idMap[slot] = id;
       }
     } else {
@@ -121,14 +180,14 @@ async function actualizarElosDB(eloMap) {
     await db.collection("jugadores").updateOne({ _id: new ObjectId(s) }, { $set: { eloActual: elo } });
 }
 
-// ── Helper: resolver nombres de un array de IDs ──────────────────────────────
+// ── Helper: resolver display de un array de IDs ──────────────────────────────
 async function resolverNombres(ids) {
   if (!ids || !ids.length) return [];
   const jugadores = await db.collection("jugadores")
     .find({ _id: { $in: ids.map(id => typeof id === "string" ? new ObjectId(id) : id) } })
     .toArray();
   const map = {};
-  for (const j of jugadores) map[j._id.toString()] = j.nombre;
+  for (const j of jugadores) map[j._id.toString()] = j.username;
   return ids.map(id => map[(typeof id === "string" ? id : id.toString())] || "Desconocido");
 }
 
@@ -136,8 +195,8 @@ async function resolverNombres(ids) {
 app.get("/api/jugadores", async (req, res) => {
   try {
     const data = await db.collection("jugadores")
-      .find({}, { projection: { nombre: 1, eloActual: 1 } })
-      .sort({ nombre: 1 }).toArray();
+      .find({}, { projection: { username: 1, nombreCompleto: 1, eloActual: 1 } })
+      .sort({ username: 1 }).toArray();
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -146,7 +205,7 @@ app.get("/api/jugadores", async (req, res) => {
 app.get("/api/stats/elo", async (req, res) => {
   try {
     const data = await db.collection("jugadores")
-      .find({}, { projection: { nombre: 1, eloActual: 1 } })
+      .find({}, { projection: { username: 1, nombreCompleto: 1, eloActual: 1 } })
       .sort({ eloActual: -1 }).toArray();
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -173,7 +232,7 @@ app.get("/api/stats/winrate", async (req, res) => {
       }},
       { $lookup: { from: "jugadores", localField: "_id", foreignField: "_id", as: "j" } },
       { $unwind: "$j" },
-      { $project: { nombre: "$j.nombre", partidos: 1, victorias: 1, derrotas: 1, winRate: 1 } },
+      { $project: { username: "$j.username", nombreCompleto: "$j.nombreCompleto", partidos: 1, victorias: 1, derrotas: 1, winRate: 1 } },
       { $sort: { winRate: -1 } },
     ]).toArray();
     res.json(data);
@@ -204,7 +263,11 @@ app.get("/api/stats/parejas", async (req, res) => {
       { $group: { _id: "$pareja", partidos: { $sum: 1 }, victorias: { $sum: { $cond: ["$gano", 1, 0] } } } },
       { $addFields: { winRate: { $round: [{ $multiply: [{ $divide: ["$victorias", "$partidos"] }, 100] }, 1] } } },
       { $lookup: { from: "jugadores", localField: "_id", foreignField: "_id", as: "jugadores" } },
-      { $addFields: { nombres: { $map: { input: "$jugadores", as: "j", in: "$$j.nombre" } } } },
+      { $addFields: {
+          usernames:        { $map: { input: "$jugadores", as: "j", in: "$$j.username" } },
+          nombresCompletos: { $map: { input: "$jugadores", as: "j", in: "$$j.nombreCompleto" } },
+      } },
+      { $project: { jugadores: 0 } },
       { $sort: { winRate: -1, partidos: -1 } },
       { $limit: 10 },
     ]).toArray();
@@ -225,11 +288,12 @@ app.get("/api/stats/torneos", async (req, res) => {
           as: "ganadorInfo"
       }},
       { $addFields: {
-          ganadorNombres: { $map: { input: "$ganadorInfo", as: "j", in: "$$j.nombre" } }
+          ganadorUsernames:        { $map: { input: "$ganadorInfo", as: "j", in: "$$j.username" } },
+          ganadorNombresCompletos: { $map: { input: "$ganadorInfo", as: "j", in: "$$j.nombreCompleto" } },
       }},
       { $project: {
           nombre: 1, fecha: 1, formato: 1, modalidad: 1,
-          ganadorNombres: 1,
+          ganadorUsernames: 1, ganadorNombresCompletos: 1,
           equipoGanador: 1
       }},
     ]).toArray();
@@ -258,8 +322,77 @@ app.get("/api/stats/finales", async (req, res) => {
       }},
       { $lookup: { from: "jugadores", localField: "_id", foreignField: "_id", as: "j" } },
       { $unwind: "$j" },
-      { $project: { nombre: "$j.nombre", finalesJugadas: 1, finalesGanadas: 1, winRate: 1 } },
+      { $project: { username: "$j.username", nombreCompleto: "$j.nombreCompleto", finalesJugadas: 1, finalesGanadas: 1, winRate: 1 } },
       { $sort: { winRate: -1 } },
+    ]).toArray();
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── API: PEOR ENEMIGO ─────────────────────────────────────────────────────────
+// Pares (A, B) donde A le gana a B >75% en >=2 enfrentamientos
+app.get("/api/stats/peor-enemigo", async (req, res) => {
+  try {
+    const data = await db.collection("partidos").aggregate([
+      // Determinar equipo perdedor: si todos los ganadores estan en equipoA, perdio B; si no, perdio A
+      { $addFields: {
+          loserTeam: {
+            $cond: [
+              { $eq: [{ $size: { $setDifference: ["$equipoGanador", "$equipoA"] } }, 0] },
+              "$equipoB",
+              "$equipoA"
+            ]
+          }
+      }},
+      // Generar pares (ganador, perdedor) en ambas direcciones
+      { $project: {
+          winPairs: {
+            $reduce: {
+              input: "$equipoGanador",
+              initialValue: [],
+              in: { $concatArrays: [
+                "$$value",
+                { $map: { input: "$loserTeam", as: "L", in: { a: "$$this", b: "$$L", aGano: true } } }
+              ]}
+            }
+          },
+          losePairs: {
+            $reduce: {
+              input: "$loserTeam",
+              initialValue: [],
+              in: { $concatArrays: [
+                "$$value",
+                { $map: { input: "$equipoGanador", as: "W", in: { a: "$$this", b: "$$W", aGano: false } } }
+              ]}
+            }
+          }
+      }},
+      { $project: { allPairs: { $concatArrays: ["$winPairs", "$losePairs"] } } },
+      { $unwind: "$allPairs" },
+      { $group: {
+          _id: { a: "$allPairs.a", b: "$allPairs.b" },
+          partidos:  { $sum: 1 },
+          victorias: { $sum: { $cond: ["$allPairs.aGano", 1, 0] } }
+      }},
+      { $match: { partidos: { $gte: 2 } } },
+      { $addFields: {
+          winRate: { $round: [{ $multiply: [{ $divide: ["$victorias", "$partidos"] }, 100] }, 1] }
+      }},
+      { $match: { winRate: { $gt: 75 } } },
+      { $lookup: { from: "jugadores", localField: "_id.a", foreignField: "_id", as: "cazador" } },
+      { $lookup: { from: "jugadores", localField: "_id.b", foreignField: "_id", as: "victima" } },
+      { $unwind: "$cazador" },
+      { $unwind: "$victima" },
+      { $project: {
+          _id: 0,
+          cazadorUsername:        "$cazador.username",
+          cazadorNombreCompleto:  "$cazador.nombreCompleto",
+          victimaUsername:        "$victima.username",
+          victimaNombreCompleto:  "$victima.nombreCompleto",
+          partidos: 1, victorias: 1, winRate: 1
+      }},
+      { $sort: { winRate: -1, partidos: -1 } },
+      { $limit: 30 },
     ]).toArray();
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -277,14 +410,18 @@ app.get("/api/stats/partidos", async (req, res) => {
       { $lookup: { from: "jugadores", localField: "equipoGanador", foreignField: "_id", as: "ganadorInfo" } },
       { $lookup: { from: "torneos", localField: "torneoId", foreignField: "_id", as: "torneoInfo" } },
       { $addFields: {
-          equipoANombres: { $map: { input: "$equipoAInfo", as: "j", in: "$$j.nombre" } },
-          equipoBNombres: { $map: { input: "$equipoBInfo", as: "j", in: "$$j.nombre" } },
-          ganadorNombres: { $map: { input: "$ganadorInfo", as: "j", in: "$$j.nombre" } },
+          equipoAUsernames:        { $map: { input: "$equipoAInfo", as: "j", in: "$$j.username" } },
+          equipoBUsernames:        { $map: { input: "$equipoBInfo", as: "j", in: "$$j.username" } },
+          ganadorUsernames:        { $map: { input: "$ganadorInfo", as: "j", in: "$$j.username" } },
+          equipoANombresCompletos: { $map: { input: "$equipoAInfo", as: "j", in: "$$j.nombreCompleto" } },
+          equipoBNombresCompletos: { $map: { input: "$equipoBInfo", as: "j", in: "$$j.nombreCompleto" } },
+          ganadorNombresCompletos: { $map: { input: "$ganadorInfo", as: "j", in: "$$j.nombreCompleto" } },
           torneoNombre: { $arrayElemAt: ["$torneoInfo.nombre", 0] }
       }},
       { $project: {
           fecha: 1, tipoPartido: 1, ronda: 1, torneoId: 1, torneoNombre: 1,
-          equipoANombres: 1, equipoBNombres: 1, ganadorNombres: 1,
+          equipoAUsernames: 1, equipoBUsernames: 1, ganadorUsernames: 1,
+          equipoANombresCompletos: 1, equipoBNombresCompletos: 1, ganadorNombresCompletos: 1,
           eloSnapshot: 1
       }},
     ]).toArray();
@@ -304,6 +441,15 @@ app.post("/api/pendientes", async (req, res) => {
       const { torneo, partidos } = req.body;
       if (!torneo || !partidos?.length)
         return res.status(400).json({ error: "Faltan torneo o partidos" });
+
+      // Validar todos los slots (NEW: y ObjectId) antes de aceptar el pendiente
+      const todosSlots = [
+        ...(torneo.equipos || []).flat(),
+        ...(torneo.ganador || []),
+        ...partidos.flatMap(p => [...(p.equipoA || []), ...(p.equipoB || []), ...(p.equipoGanador || [])]),
+      ];
+      validarSlotsParaPendiente(todosSlots);
+
       await db.collection("pendientes").insertOne({
         tipo, torneo, partidos, enviadoPor, estado: "pendiente", fechaEnvio: new Date(),
       });
@@ -312,6 +458,9 @@ app.post("/api/pendientes", async (req, res) => {
       const { fecha, modalidad, equipoA, equipoB, equipoGanador } = req.body;
       if (!fecha || !modalidad || !equipoA?.length || !equipoB?.length || !equipoGanador?.length)
         return res.status(400).json({ error: "Partido incompleto: faltan fecha, modalidad, equipoA, equipoB o equipoGanador" });
+
+      validarSlotsParaPendiente([...equipoA, ...equipoB, ...equipoGanador]);
+
       await db.collection("pendientes").insertOne({
         tipo, enviadoPor, fecha, modalidad, equipoA, equipoB, equipoGanador,
         estado: "pendiente", fechaEnvio: new Date(),
@@ -322,7 +471,7 @@ app.post("/api/pendientes", async (req, res) => {
     }
 
     res.json({ ok: true, mensaje: "Enviado. Marco lo revisará." });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 // ── ADMIN: LISTAR PENDIENTES ──────────────────────────────────────────────────
@@ -350,15 +499,16 @@ app.get("/api/admin/pendientes", adminAuth, async (req, res) => {
       }
     }
 
-    // Lookup nombres
+    // Lookup nombres (devolvemos username + nombreCompleto por cada _id)
     const ids = [...allSlots].filter(s => /^[a-f\d]{24}$/i.test(s)).map(s => new ObjectId(s));
     const jugadores = ids.length
       ? await db.collection("jugadores").find({ _id: { $in: ids } }).toArray()
       : [];
     const nombreMap = {};
-    for (const j of jugadores) nombreMap[j._id.toString()] = j.nombre;
+    for (const j of jugadores) {
+      nombreMap[j._id.toString()] = { username: j.username, nombreCompleto: j.nombreCompleto };
+    }
 
-    // Agregar nombreMap a la respuesta
     res.json({ pendientes: data, nombreMap });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -395,6 +545,51 @@ app.post("/api/admin/aprobar/:id", adminAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── ADMIN: JUGADORES (listar y editar) ────────────────────────────────────────
+app.get("/api/admin/jugadores", adminAuth, async (req, res) => {
+  try {
+    const data = await db.collection("jugadores")
+      .find({})
+      .sort({ usernameLower: 1 })
+      .toArray();
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch("/api/admin/jugadores/:id", adminAuth, async (req, res) => {
+  try {
+    const { username, nombreCompleto, activo } = req.body;
+    const update = {};
+
+    if (username !== undefined) {
+      validarUsername(username);
+      // Verificar que no choque con otro jugador
+      const choque = await db.collection("jugadores").findOne({
+        usernameLower: username.toLowerCase(),
+        _id: { $ne: new ObjectId(req.params.id) },
+      });
+      if (choque) return res.status(409).json({ error: `Username "${username}" ya lo usa otro jugador.` });
+      update.username = username;
+      update.usernameLower = username.toLowerCase();
+    }
+    if (nombreCompleto !== undefined) {
+      validarNombreCompleto(nombreCompleto);
+      update.nombreCompleto = nombreCompleto;
+    }
+    if (activo !== undefined) update.activo = !!activo;
+
+    if (!Object.keys(update).length)
+      return res.status(400).json({ error: "Nada para actualizar." });
+
+    const r = await db.collection("jugadores").updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: update }
+    );
+    if (r.matchedCount === 0) return res.status(404).json({ error: "Jugador no encontrado." });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 // ── ADMIN: LIMPIAR PROCESADOS ─────────────────────────────────────────────────
 app.delete("/api/admin/pendientes/procesados", adminAuth, async (req, res) => {
   try {
@@ -409,7 +604,8 @@ app.delete("/api/admin/pendientes/procesados", adminAuth, async (req, res) => {
 async function procesarPartidoSuelto(p) {
   const { equipoA: slotsA, equipoB: slotsB, equipoGanador: slotsGanador, fecha } = p;
 
-  const idMap  = await resolverSlots([...slotsA, ...slotsB]);
+  const ctx = { enviadoPor: p.enviadoPor, pendienteId: p._id, tipo: "partido_suelto" };
+  const idMap  = await resolverSlots([...slotsA, ...slotsB], ctx);
   const eqA    = slotsA.map(s => idMap[s]);
   const eqB    = slotsB.map(s => idMap[s]);
   const eqGanador = slotsGanador.map(s => idMap[s]);
@@ -453,7 +649,8 @@ async function procesarTorneo(pendiente) {
     ...partidos.flatMap(p => [...p.equipoA, ...p.equipoB, ...(p.equipoGanador || [])]),
   ])];
 
-  const idMap       = await resolverSlots(todosSlots);
+  const ctx = { enviadoPor: pendiente.enviadoPor, pendienteId: pendiente._id, tipo: "torneo" };
+  const idMap       = await resolverSlots(todosSlots, ctx);
   const resEquipo   = eq => eq.map(s => idMap[s]);
   const todosIds    = Object.values(idMap);
   const { eloMap, jugados } = await obtenerElos(todosIds);

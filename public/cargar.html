@@ -4,66 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cargar resultado · Truco Stats</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css">
   <style>
-    body { background: #0f172a; }
-    .card { background: #1e293b; border: 1px solid #334155; }
-    .input {
-      background: #0f172a; border: 1px solid #475569; color: #f1f5f9;
-      border-radius: 0.5rem; padding: 0.5rem 0.75rem; width: 100%; font-size: 0.875rem;
-    }
-    .input:focus { outline: none; border-color: #f97316; }
-    select.input option { background: #1e293b; }
-    .btn-primary { background:#f97316; color:white; font-weight:600; padding:0.6rem 1.25rem; border-radius:0.5rem; transition:background 0.2s; }
-    .btn-primary:hover { background:#ea580c; }
-    .btn-ghost { background:#334155; color:#cbd5e1; font-weight:500; padding:0.5rem 1rem; border-radius:0.5rem; transition:background 0.2s; }
-    .btn-ghost:hover { background:#475569; }
-    .btn-danger { background:#dc2626; color:white; font-weight:500; padding:0.4rem 0.75rem; border-radius:0.5rem; font-size:0.8rem; }
-    .step { display:none; }
-    .step.active { display:block; }
-    .step-dot { width:2rem; height:2rem; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; }
-
-    /* Tabs */
-    .tab { padding:0.6rem 1.25rem; font-weight:600; border-radius:0.5rem 0.5rem 0 0; cursor:pointer; transition: all 0.2s; }
-    .tab.active { background:#1e293b; color:#f97316; border-bottom:2px solid #f97316; }
-    .tab:not(.active) { background:#0f172a; color:#64748b; }
-    .tab:not(.active):hover { color:#94a3b8; }
-
-    /* Combobox */
-    .combo-wrap { position: relative; }
-    .combo-input {
-      background: #0f172a; border: 1px solid #475569; color: #f1f5f9;
-      border-radius: 0.5rem; padding: 0.5rem 0.75rem; width: 100%; font-size: 0.875rem;
-    }
-    .combo-input:focus { outline: none; border-color: #f97316; }
-    .combo-input.selected-existing { border-color: #22c55e; color: #86efac; }
-    .combo-input.selected-new      { border-color: #a78bfa; color: #c4b5fd; }
-    .combo-dropdown {
-      position: absolute; z-index: 50; top: calc(100% + 4px); left: 0; right: 0;
-      background: #1e293b; border: 1px solid #475569; border-radius: 0.5rem;
-      max-height: 200px; overflow-y: auto; display: none;
-    }
-    .combo-dropdown.open { display: block; }
-    .combo-option {
-      padding: 0.5rem 0.75rem; font-size: 0.875rem; cursor: pointer;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-    .combo-option:hover, .combo-option.active { background: #334155; }
-    .combo-option.new-opt { color: #a78bfa; border-top: 1px solid #334155; }
-    .combo-option.new-opt:hover { background: #3b2f5e; }
+    .step { display: none; }
+    .step.active { display: block; }
   </style>
 </head>
-<body class="text-slate-100 min-h-screen">
+<body>
 
-  <header class="border-b border-slate-700 px-6 py-4 flex items-center gap-4">
-    <a href="/" class="text-slate-400 hover:text-white transition">&larr; Volver</a>
-    <h1 class="text-lg font-bold text-white">Cargar resultado</h1>
+  <header class="hero">
+    <div class="max-w-3xl mx-auto flex items-center gap-4">
+      <a href="/" class="text-muted" style="font-size:0.85rem;">&larr; Volver</a>
+      <h1 style="font-size:1.3rem;">Cargar resultado</h1>
+    </div>
   </header>
 
-  <div class="max-w-2xl mx-auto px-4 py-6">
+  <main class="max-w-2xl mx-auto px-4 py-8">
 
-    <!-- TABS: Torneo vs Partido suelto -->
-    <div class="flex gap-1 mb-6">
+    <!-- TABS -->
+    <div class="flex gap-1 mb-8" style="border-bottom: 1px solid var(--gold-faint);">
       <div class="tab active" id="tab-torneo" onclick="switchTab('torneo')">Torneo</div>
       <div class="tab" id="tab-suelto" onclick="switchTab('suelto')">Partido suelto</div>
     </div>
@@ -72,45 +35,47 @@
     <!-- MODO TORNEO -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <div id="modo-torneo">
+
       <!-- PROGRESS -->
       <div class="flex items-center gap-2 mb-8">
-        <div id="dot-1" class="step-dot bg-orange-500 text-white">1</div>
-        <div class="flex-1 h-0.5 bg-slate-700" id="line-1"></div>
-        <div id="dot-2" class="step-dot bg-slate-700 text-slate-400">2</div>
-        <div class="flex-1 h-0.5 bg-slate-700" id="line-2"></div>
-        <div id="dot-3" class="step-dot bg-slate-700 text-slate-400">3</div>
-        <div class="flex-1 h-0.5 bg-slate-700" id="line-3"></div>
-        <div id="dot-4" class="step-dot bg-slate-700 text-slate-400">4</div>
+        <div id="dot-1" class="step-dot active">1</div>
+        <div class="step-line" id="line-1"></div>
+        <div id="dot-2" class="step-dot">2</div>
+        <div class="step-line" id="line-2"></div>
+        <div id="dot-3" class="step-dot">3</div>
+        <div class="step-line" id="line-3"></div>
+        <div id="dot-4" class="step-dot">4</div>
       </div>
 
       <!-- PASO 1: Info torneo -->
       <div id="step-1" class="step active space-y-6">
-        <div class="card rounded-xl p-6 space-y-5">
-          <h2 class="font-bold text-white text-lg">Informacion del torneo</h2>
+        <div class="card p-6 space-y-5">
+          <h2>Informacion del torneo</h2>
+          <p class="ornament left italic" style="margin:0; font-style:italic;">Datos basicos del evento</p>
           <div>
-            <label class="text-sm text-slate-400 mb-1 block">Tu nombre</label>
-            <input id="enviadoPor" class="input" type="text" placeholder="Quien carga este torneo?" />
+            <label class="text-muted italic" style="font-size:0.85rem;">Tu nombre</label>
+            <input id="enviadoPor" class="input mt-1" type="text" placeholder="Quien carga este torneo?" />
           </div>
           <div>
-            <label class="text-sm text-slate-400 mb-1 block">Nombre del torneo (opcional)</label>
-            <input id="torneoNombre" class="input" type="text" placeholder="Ej: Copa Asado Abril 2026" />
+            <label class="text-muted italic" style="font-size:0.85rem;">Nombre del torneo (opcional)</label>
+            <input id="torneoNombre" class="input mt-1" type="text" placeholder="Ej: Copa Asado Abril 2026" />
           </div>
           <div>
-            <label class="text-sm text-slate-400 mb-1 block">Fecha</label>
-            <input id="torneoFecha" class="input" type="date" />
+            <label class="text-muted italic" style="font-size:0.85rem;">Fecha</label>
+            <input id="torneoFecha" class="input mt-1" type="date" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="text-sm text-slate-400 mb-1 block">Formato</label>
-              <select id="torneoFormato" class="input">
+              <label class="text-muted italic" style="font-size:0.85rem;">Formato</label>
+              <select id="torneoFormato" class="input mt-1">
                 <option value="eliminacion_directa">Eliminacion directa</option>
                 <option value="liga" selected>Liga (round-robin)</option>
                 <option value="todos_contra_todos">Todos contra todos</option>
               </select>
             </div>
             <div>
-              <label class="text-sm text-slate-400 mb-1 block">Modalidad</label>
-              <select id="torneoModalidad" class="input">
+              <label class="text-muted italic" style="font-size:0.85rem;">Modalidad</label>
+              <select id="torneoModalidad" class="input mt-1">
                 <option value="2v2" selected>2v2</option>
                 <option value="3v3">3v3</option>
                 <option value="individual">Individual</option>
@@ -118,64 +83,63 @@
             </div>
           </div>
         </div>
-        <div class="flex justify-end">
-          <button onclick="goStep(2)" class="btn-primary">Siguiente &rarr;</button>
+        <div class="flex justify-end mt-4">
+          <button onclick="goStep(2)" class="btn-gold">Siguiente &rarr;</button>
         </div>
       </div>
 
       <!-- PASO 2: Equipos -->
       <div id="step-2" class="step space-y-6">
-        <div class="card rounded-xl p-6 space-y-4">
+        <div class="card p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="font-bold text-white text-lg">Equipos</h2>
-            <button onclick="addEquipo()" class="btn-ghost text-sm">+ Agregar equipo</button>
+            <h2>Equipos</h2>
+            <button onclick="addEquipo()" class="btn-ghost">+ Agregar</button>
           </div>
-          <p class="text-sm text-slate-400">
-            Escribi el nombre para buscar jugadores existentes.<br>
-            Si no aparece, podes agregarlo como jugador nuevo desde la lista.
+          <p class="text-muted italic" style="font-size:0.88rem;">
+            Escribi para buscar jugadores existentes. Si no aparece, podes crearlo desde la lista.
           </p>
-          <div id="equipos-container" class="space-y-4"></div>
+          <div id="equipos-container" class="space-y-3"></div>
         </div>
-        <div class="flex justify-between">
+        <div class="flex justify-between mt-4">
           <button onclick="goStep(1)" class="btn-ghost">&larr; Atras</button>
-          <button onclick="goStep(3)" class="btn-primary">Siguiente &rarr;</button>
+          <button onclick="goStep(3)" class="btn-gold">Siguiente &rarr;</button>
         </div>
       </div>
 
       <!-- PASO 3: Partidos del torneo -->
       <div id="step-3" class="step space-y-6">
-        <div class="card rounded-xl p-6 space-y-4">
+        <div class="card p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="font-bold text-white text-lg">Partidos</h2>
-            <button onclick="addPartido()" class="btn-ghost text-sm">+ Agregar partido</button>
+            <h2>Partidos</h2>
+            <button onclick="addPartido()" class="btn-ghost">+ Agregar</button>
           </div>
-          <p class="text-sm text-slate-400">Carga cada partido indicando los equipos y quien gano.</p>
+          <p class="text-muted italic" style="font-size:0.88rem;">Carga cada partido indicando los equipos y quien gano.</p>
           <div id="partidos-container" class="space-y-3"></div>
         </div>
-        <div class="flex justify-between">
+        <div class="flex justify-between mt-4">
           <button onclick="goStep(2)" class="btn-ghost">&larr; Atras</button>
-          <button onclick="goStep(4)" class="btn-primary">Siguiente &rarr;</button>
+          <button onclick="goStep(4)" class="btn-gold">Siguiente &rarr;</button>
         </div>
       </div>
 
       <!-- PASO 4: Ganador del torneo -->
       <div id="step-4" class="step space-y-6">
-        <div class="card rounded-xl p-6 space-y-5">
-          <h2 class="font-bold text-white text-lg">Ganador del torneo</h2>
+        <div class="card p-6 space-y-5">
+          <h2>Ganador del torneo</h2>
           <div>
-            <label class="text-sm text-slate-400 mb-1 block">Que equipo gano el torneo?</label>
-            <select id="ganadorSelect" class="input">
+            <label class="text-muted italic" style="font-size:0.85rem;">Que equipo gano?</label>
+            <select id="ganadorSelect" class="input mt-1">
               <option value="">— Seleccionar equipo ganador —</option>
             </select>
           </div>
-          <div class="border-t border-slate-700 pt-4 space-y-1">
-            <h3 class="text-sm font-bold text-slate-300 mb-2">Resumen</h3>
-            <div id="resumen" class="text-sm text-slate-400 space-y-1"></div>
+          <div style="border-top:1px solid var(--gold-faint); padding-top:1rem;">
+            <p class="ornament" style="margin:0 0 0.5rem 0;">Resumen</p>
+            <div id="resumen" class="text-muted" style="font-size:0.9rem; line-height:1.7;"></div>
           </div>
         </div>
-        <div class="flex justify-between">
+        <div class="flex justify-between mt-4">
           <button onclick="goStep(3)" class="btn-ghost">&larr; Atras</button>
-          <button onclick="enviarTorneo()" class="btn-primary">Enviar para revision</button>
+          <button onclick="enviarTorneo()" class="btn-gold">Enviar para revision</button>
         </div>
       </div>
     </div>
@@ -185,47 +149,44 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <div id="modo-suelto" class="hidden">
       <div class="space-y-6">
-        <div class="card rounded-xl p-6 space-y-5">
-          <h2 class="font-bold text-white text-lg">Partido suelto</h2>
+        <div class="card p-6 space-y-5">
+          <h2>Partido suelto</h2>
           <div>
-            <label class="text-sm text-slate-400 mb-1 block">Tu nombre</label>
-            <input id="suelto-enviadoPor" class="input" type="text" placeholder="Quien carga este partido?" />
+            <label class="text-muted italic" style="font-size:0.85rem;">Tu nombre</label>
+            <input id="suelto-enviadoPor" class="input mt-1" type="text" placeholder="Quien carga este partido?" />
           </div>
           <div>
-            <label class="text-sm text-slate-400 mb-1 block">Fecha</label>
-            <input id="suelto-fecha" class="input" type="date" />
+            <label class="text-muted italic" style="font-size:0.85rem;">Fecha</label>
+            <input id="suelto-fecha" class="input mt-1" type="date" />
           </div>
           <div>
-            <label class="text-sm text-slate-400 mb-1 block">Modalidad</label>
-            <select id="suelto-modalidad" class="input">
+            <label class="text-muted italic" style="font-size:0.85rem;">Modalidad</label>
+            <select id="suelto-modalidad" class="input mt-1">
               <option value="2v2" selected>2v2</option>
               <option value="3v3">3v3</option>
               <option value="individual">Individual</option>
             </select>
           </div>
 
-          <!-- Equipo 1 -->
           <div>
-            <label class="text-sm text-slate-400 mb-2 block font-semibold">Equipo 1</label>
+            <label class="font-serif" style="font-size:0.7rem; color:var(--gold); letter-spacing:0.18em; text-transform:uppercase; display:block; margin-bottom:0.5rem;">Equipo 1</label>
             <div id="suelto-eqA-container" class="space-y-2"></div>
           </div>
 
-          <!-- Equipo 2 -->
           <div>
-            <label class="text-sm text-slate-400 mb-2 block font-semibold">Equipo 2</label>
+            <label class="font-serif" style="font-size:0.7rem; color:var(--gold); letter-spacing:0.18em; text-transform:uppercase; display:block; margin-bottom:0.5rem;">Equipo 2</label>
             <div id="suelto-eqB-container" class="space-y-2"></div>
           </div>
 
-          <!-- Ganador -->
           <div>
-            <label class="text-sm text-slate-400 mb-1 block">Equipo ganador</label>
-            <select id="suelto-ganador" class="input">
+            <label class="text-muted italic" style="font-size:0.85rem;">Equipo ganador</label>
+            <select id="suelto-ganador" class="input mt-1">
               <option value="">— Quien gano? —</option>
             </select>
           </div>
         </div>
-        <div class="flex justify-end">
-          <button onclick="enviarSuelto()" class="btn-primary">Enviar para revision</button>
+        <div class="flex justify-end mt-4">
+          <button onclick="enviarSuelto()" class="btn-gold">Enviar para revision</button>
         </div>
       </div>
     </div>
@@ -234,22 +195,47 @@
     <!-- EXITO -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <div id="step-ok" class="step">
-      <div class="card rounded-xl p-10 text-center space-y-4">
-        <div class="text-5xl">&#x2705;</div>
-        <h2 class="text-xl font-bold text-white">Enviado!</h2>
-        <p class="text-slate-400">Marco lo va a revisar antes de publicarlo en las estadisticas.</p>
-        <a href="/" class="btn-primary inline-block mt-4">Ver estadisticas</a>
+      <div class="card p-10 text-center space-y-4">
+        <div style="font-size:3rem; color:var(--gold-bright);">&#x2714;</div>
+        <h2>Enviado</h2>
+        <p class="text-muted italic">Marco lo va a revisar antes de publicarlo en las estadisticas.</p>
+        <a href="/" class="btn-gold inline-block mt-4">Ver estadisticas</a>
       </div>
     </div>
 
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL: crear jugador nuevo -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="modal-nuevo" class="modal-overlay">
+    <div class="modal-card space-y-4">
+      <h3 style="margin:0;">Crear jugador nuevo</h3>
+      <p class="ornament" style="margin:0;">◆</p>
+      <div>
+        <label class="text-muted italic" style="font-size:0.85rem;">Username (alias unico)</label>
+        <input id="modal-username" class="input mt-1" type="text" placeholder="marco_fer" autocomplete="off" maxlength="20" />
+        <p class="text-muted italic" style="font-size:0.75rem; margin-top:0.25rem;">3-20 caracteres: letras, numeros y "_"</p>
+        <p id="modal-username-error" class="text-crimson hidden" style="font-size:0.8rem; margin-top:0.25rem;"></p>
+      </div>
+      <div>
+        <label class="text-muted italic" style="font-size:0.85rem;">Nombre completo</label>
+        <input id="modal-nombre" class="input mt-1" type="text" placeholder="Marco Fernandez" autocomplete="off" maxlength="60" />
+        <p class="text-muted italic" style="font-size:0.75rem; margin-top:0.25rem;">2-60 caracteres</p>
+        <p id="modal-nombre-error" class="text-crimson hidden" style="font-size:0.8rem; margin-top:0.25rem;"></p>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button id="modal-cancel" class="btn-ghost flex-1">Cancelar</button>
+        <button id="modal-confirm" class="btn-gold flex-1">Crear</button>
+      </div>
+    </div>
   </div>
 
 <script>
 let jugadores = [];
-let equipos   = [];   // para torneo
-let partidos  = [];   // para torneo
+let equipos   = [];
+let partidos  = [];
 
-// Partido suelto
 let sueltoEqA = [];
 let sueltoEqB = [];
 
@@ -261,10 +247,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     jugadores = await fetch("/api/jugadores").then(r => r.json());
   } catch { console.warn("No se pudo cargar jugadores."); }
 
-  // Inicializar partido suelto con slots vacios
   initSuelto();
-
-  // Listener para cambio de modalidad en suelto
   document.getElementById("suelto-modalidad").addEventListener("change", () => initSuelto());
 });
 
@@ -274,7 +257,6 @@ document.addEventListener("click", e => {
   }
 });
 
-// ── TABS ──
 function switchTab(tab) {
   document.getElementById("tab-torneo").classList.toggle("active", tab === "torneo");
   document.getElementById("tab-suelto").classList.toggle("active", tab === "suelto");
@@ -304,32 +286,32 @@ function crearCombobox(dataArray, idx, slotIdx) {
   function renderOpciones(filtro) {
     const f = filtro.trim().toLowerCase();
     const coincidencias = f
-      ? jugadores.filter(j => j.nombre.toLowerCase().includes(f))
+      ? jugadores.filter(j =>
+          (j.username || "").toLowerCase().includes(f) ||
+          (j.nombreCompleto || "").toLowerCase().includes(f))
       : jugadores;
 
     dropdown.innerHTML = "";
 
     const newOpt = document.createElement("div");
-    const textoNuevo = f ? `+ Agregar "${filtro}" como nuevo jugador` : "+ Agregar jugador nuevo...";
+    const textoNuevo = f ? `+ Crear "${filtro}" como nuevo jugador...` : "+ Crear jugador nuevo...";
     newOpt.className = "combo-option new-opt";
     newOpt.textContent = textoNuevo;
     newOpt.addEventListener("mousedown", e => {
       e.preventDefault();
-      const nombre = f || "";
-      if (!nombre) {
-        const n = prompt("Nombre del jugador nuevo:");
-        if (!n?.trim()) return;
-        seleccionarNuevo(n.trim());
-      } else {
-        seleccionarNuevo(filtro.trim());
-      }
+      abrirModalNuevo(filtro.trim(), (username, nombreCompleto) => {
+        seleccionarNuevo(username, nombreCompleto);
+      });
     });
     dropdown.appendChild(newOpt);
 
     coincidencias.forEach(j => {
       const opt = document.createElement("div");
       opt.className = "combo-option";
-      opt.innerHTML = `<span class="text-green-400 text-xs">&#x25CF;</span> ${j.nombre}`;
+      const nc = j.nombreCompleto && j.nombreCompleto !== j.username
+        ? `<span class="text-muted italic" style="font-size:0.78rem; margin-left:0.5rem;">${j.nombreCompleto}</span>`
+        : "";
+      opt.innerHTML = `<span style="color:#86efac;">&#x25CF;</span> <span class="text-cream">${j.username}</span>${nc}`;
       opt.addEventListener("mousedown", e => {
         e.preventDefault();
         seleccionarExistente(j);
@@ -341,16 +323,16 @@ function crearCombobox(dataArray, idx, slotIdx) {
   }
 
   function seleccionarExistente(j) {
-    dataArray[idx][slotIdx] = { tipo: "existente", valor: j._id, display: j.nombre };
-    input.value = j.nombre;
+    dataArray[idx][slotIdx] = { tipo: "existente", valor: j._id, display: j.username, nombreCompleto: j.nombreCompleto };
+    input.value = j.username;
     input.className = "combo-input selected-existing";
     dropdown.classList.remove("open");
     actualizarGanadorSuelto();
   }
 
-  function seleccionarNuevo(nombre) {
-    dataArray[idx][slotIdx] = { tipo: "nuevo", valor: nombre, display: nombre };
-    input.value = `${nombre} (nuevo)`;
+  function seleccionarNuevo(username, nombreCompleto) {
+    dataArray[idx][slotIdx] = { tipo: "nuevo", valor: username, nombreCompleto, display: username };
+    input.value = `${nombreCompleto} (@${username}, nuevo)`;
     input.className = "combo-input selected-new";
     dropdown.classList.remove("open");
     actualizarGanadorSuelto();
@@ -384,13 +366,13 @@ function goStep(n) {
   for (let i = 1; i <= 4; i++) {
     const dot = document.getElementById(`dot-${i}`);
     const line = document.getElementById(`line-${i}`);
-    if (i < n)        { dot.className = "step-dot bg-green-500 text-white"; if (line) line.style.background = "#22c55e"; }
-    else if (i === n) { dot.className = "step-dot bg-orange-500 text-white"; }
-    else              { dot.className = "step-dot bg-slate-700 text-slate-400"; if (line) line.style.background = ""; }
+    dot.classList.remove("active", "done");
+    if (line) line.classList.remove("done");
+    if (i < n)        { dot.classList.add("done"); if (line) line.classList.add("done"); }
+    else if (i === n) { dot.classList.add("active"); }
   }
 }
 
-// ── VALIDACIONES TORNEO ──
 function validarPaso1() {
   if (!document.getElementById("enviadoPor").value.trim()) { alert("Ingresa tu nombre."); return false; }
   return true;
@@ -401,13 +383,13 @@ function validarPaso2() {
   const porEquipo = modalidad === "individual" ? 1 : modalidad === "3v3" ? 3 : 2;
   if (equipos.length < 2) { alert("Necesitas al menos 2 equipos."); return false; }
 
-  const existentesNombres = jugadores.map(j => j.nombre.trim().toLowerCase());
-
   for (let i = 0; i < equipos.length; i++) {
     const slots = equipos[i].filter(s => s?.valor);
     if (slots.length !== porEquipo) { alert(`El equipo ${i+1} necesita ${porEquipo} jugador(es).`); return false; }
     for (const s of slots) {
-      if (s.tipo === "nuevo" && !s.valor.trim()) { alert(`Un jugador nuevo en el equipo ${i+1} no tiene nombre.`); return false; }
+      if (s.tipo === "nuevo" && (!s.valor.trim() || !s.nombreCompleto?.trim())) {
+        alert(`Un jugador nuevo en el equipo ${i+1} esta incompleto.`); return false;
+      }
     }
   }
 
@@ -439,13 +421,13 @@ function addEquipo() {
 
   const div = document.createElement("div");
   div.id = `equipo-${idx}`;
-  div.className = "card rounded-lg p-3 space-y-2";
+  div.className = "card p-3 space-y-2";
 
   const header = document.createElement("div");
   header.className = "flex items-center justify-between mb-1";
   header.innerHTML = `
-    <span class="text-sm font-semibold text-slate-300">Equipo ${idx + 1}</span>
-    <button onclick="removeEquipo(${idx})" class="btn-danger text-xs">&#x2715; Quitar</button>`;
+    <span class="font-serif text-gold" style="font-size:0.72rem; letter-spacing:0.16em; text-transform:uppercase;">Equipo ${idx + 1}</span>
+    <button onclick="removeEquipo(${idx})" class="btn-danger" style="padding:0.25rem 0.6rem; font-size:0.6rem;">&#x2715;</button>`;
   div.appendChild(header);
 
   for (let s = 0; s < porEquipo; s++) {
@@ -453,7 +435,8 @@ function addEquipo() {
     row.className = "flex items-center gap-2";
     if (porEquipo > 1) {
       const lbl = document.createElement("span");
-      lbl.className = "text-xs text-slate-500 w-16 shrink-0";
+      lbl.className = "text-muted italic";
+      lbl.style.cssText = "font-size:0.75rem; width:4rem; flex-shrink:0;";
       lbl.textContent = `Jugador ${s + 1}`;
       row.appendChild(lbl);
     }
@@ -487,34 +470,33 @@ function addPartido() {
 
   const div = document.createElement("div");
   div.id = `partido-${idx}`;
-  div.className = "card rounded-lg p-4 space-y-3";
+  div.className = "card p-4 space-y-3";
   div.innerHTML = `
     <div class="flex items-center justify-between">
-      <span class="text-sm font-semibold text-slate-300">Partido ${idx+1}</span>
-      <button onclick="removePartido(${idx})" class="btn-danger">&#x2715;</button>
+      <span class="font-serif text-gold" style="font-size:0.72rem; letter-spacing:0.16em; text-transform:uppercase;">Partido ${idx+1}</span>
+      <button onclick="removePartido(${idx})" class="btn-danger" style="padding:0.25rem 0.6rem; font-size:0.6rem;">&#x2715;</button>
     </div>
     <div class="grid grid-cols-2 gap-3">
-      <div><label class="text-xs text-slate-400 mb-1 block">Equipo 1</label>
-        <select class="input" onchange="partidos[${idx}].equipoA_idx=this.value; actualizarGanadorPartido(${idx})">
+      <div><label class="text-muted italic" style="font-size:0.78rem;">Equipo 1</label>
+        <select class="input mt-1" onchange="partidos[${idx}].equipoA_idx=this.value; actualizarGanadorPartido(${idx})">
           <option value="">— Equipo 1 —</option>${opts}</select></div>
-      <div><label class="text-xs text-slate-400 mb-1 block">Equipo 2</label>
-        <select class="input" onchange="partidos[${idx}].equipoB_idx=this.value; actualizarGanadorPartido(${idx})">
+      <div><label class="text-muted italic" style="font-size:0.78rem;">Equipo 2</label>
+        <select class="input mt-1" onchange="partidos[${idx}].equipoB_idx=this.value; actualizarGanadorPartido(${idx})">
           <option value="">— Equipo 2 —</option>${opts}</select></div>
     </div>
     <div class="grid grid-cols-2 gap-3">
-      <div><label class="text-xs text-slate-400 mb-1 block">Ganador</label>
-        <select class="input" id="partido-ganador-${idx}" onchange="partidos[${idx}].ganador_idx=this.value">
+      <div><label class="text-muted italic" style="font-size:0.78rem;">Ganador</label>
+        <select class="input mt-1" id="partido-ganador-${idx}" onchange="partidos[${idx}].ganador_idx=this.value">
           <option value="">— Quien gano —</option>
         </select></div>
-      <div><label class="text-xs text-slate-400 mb-1 block">Ronda</label>
-        <select class="input" onchange="partidos[${idx}].ronda=this.value">
+      <div><label class="text-muted italic" style="font-size:0.78rem;">Ronda</label>
+        <select class="input mt-1" onchange="partidos[${idx}].ronda=this.value">
           <option value="">— Ronda —</option>
           ${rondas.map(r => `<option value="${r}">${r}</option>`).join("")}</select></div>
     </div>`;
   document.getElementById("partidos-container").appendChild(div);
 }
 
-// Actualizar opciones de ganador de un partido del torneo con nombres reales
 function actualizarGanadorPartido(idx) {
   const p = partidos[idx];
   const sel = document.getElementById(`partido-ganador-${idx}`);
@@ -545,17 +527,21 @@ function llenarGanadorSelect() {
 function actualizarResumen() {
   const nuevos = equipos.flat().filter(s => s?.tipo === "nuevo" && s.valor);
   document.getElementById("resumen").innerHTML = `
-    <p>Torneo: <b>${document.getElementById("torneoNombre").value || "Sin nombre"}</b></p>
-    <p>Fecha: <b>${document.getElementById("torneoFecha").value}</b></p>
-    <p>Formato: <b>${document.getElementById("torneoFormato").value} - ${document.getElementById("torneoModalidad").value}</b></p>
-    <p>Equipos: <b>${equipos.length}</b> | Partidos: <b>${partidos.length}</b></p>
-    ${nuevos.length ? `<p>Jugadores nuevos: <b>${nuevos.map(s=>s.valor).join(", ")}</b></p>` : ""}`;
+    <p>Torneo: <b class="text-gold-bright">${document.getElementById("torneoNombre").value || "Sin nombre"}</b></p>
+    <p>Fecha: <b class="text-gold-bright">${document.getElementById("torneoFecha").value}</b></p>
+    <p>Formato: <b class="text-gold-bright">${document.getElementById("torneoFormato").value} · ${document.getElementById("torneoModalidad").value}</b></p>
+    <p>Equipos: <b class="text-gold-bright">${equipos.length}</b> · Partidos: <b class="text-gold-bright">${partidos.length}</b></p>
+    ${nuevos.length ? `<p>Jugadores nuevos: <b class="text-gold-bright">${nuevos.map(s=>s.valor).join(", ")}</b></p>` : ""}`;
 }
 
 // ── ENVIAR TORNEO ──
 function serializarSlot(s) {
   if (!s?.valor) return null;
-  return s.tipo === "nuevo" ? `NEW:${s.valor.trim()}` : s.valor;
+  if (s.tipo === "nuevo") {
+    const nc = (s.nombreCompleto || s.valor).trim();
+    return `NEW:${s.valor.trim()}|${nc}`;
+  }
+  return s.valor;
 }
 
 async function enviarTorneo() {
@@ -624,7 +610,8 @@ function renderSueltoEquipo(containerId, dataArray, eqIdx, porEquipo) {
     row.className = "flex items-center gap-2";
     if (porEquipo > 1) {
       const lbl = document.createElement("span");
-      lbl.className = "text-xs text-slate-500 w-16 shrink-0";
+      lbl.className = "text-muted italic";
+      lbl.style.cssText = "font-size:0.75rem; width:4rem; flex-shrink:0;";
       lbl.textContent = `Jugador ${s + 1}`;
       row.appendChild(lbl);
     }
@@ -652,6 +639,74 @@ function actualizarGanadorSuelto() {
     <option value="B">${nombreB}</option>`;
   sel.value = prev;
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MODAL: crear jugador nuevo
+// ══════════════════════════════════════════════════════════════════════════════
+let modalCallback = null;
+
+function abrirModalNuevo(usernameInicial, callback) {
+  modalCallback = callback;
+  const inputU = document.getElementById("modal-username");
+  const inputN = document.getElementById("modal-nombre");
+  const sugerido = (usernameInicial || "").replace(/[^a-zA-Z0-9_]/g, "");
+  inputU.value = sugerido.length >= 3 ? sugerido : "";
+  inputN.value = usernameInicial && usernameInicial.length >= 2 ? usernameInicial : "";
+  document.getElementById("modal-username-error").classList.add("hidden");
+  document.getElementById("modal-nombre-error").classList.add("hidden");
+  document.getElementById("modal-nuevo").classList.add("open");
+  inputU.focus();
+  inputU.select();
+}
+
+function cerrarModal() {
+  document.getElementById("modal-nuevo").classList.remove("open");
+  modalCallback = null;
+}
+
+function validarYConfirmarModal() {
+  const u = document.getElementById("modal-username").value.trim();
+  const n = document.getElementById("modal-nombre").value.trim();
+  const errU = document.getElementById("modal-username-error");
+  const errN = document.getElementById("modal-nombre-error");
+  errU.classList.add("hidden");
+  errN.classList.add("hidden");
+
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(u)) {
+    errU.textContent = "Username invalido (3-20 chars: letras, numeros, _)";
+    errU.classList.remove("hidden");
+    return;
+  }
+  if (jugadores.some(j => (j.username || "").toLowerCase() === u.toLowerCase())) {
+    errU.textContent = `"${u}" ya existe. Elegílo de la lista en lugar de crearlo.`;
+    errU.classList.remove("hidden");
+    return;
+  }
+  if (n.length < 2 || n.length > 60) {
+    errN.textContent = "Nombre completo debe tener 2-60 caracteres.";
+    errN.classList.remove("hidden");
+    return;
+  }
+  const cb = modalCallback;
+  cerrarModal();
+  cb?.(u, n);
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("modal-confirm").addEventListener("click", validarYConfirmarModal);
+  document.getElementById("modal-cancel").addEventListener("click", cerrarModal);
+  document.getElementById("modal-nuevo").addEventListener("click", e => {
+    if (e.target.id === "modal-nuevo") cerrarModal();
+  });
+  document.getElementById("modal-username").addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); document.getElementById("modal-nombre").focus(); }
+    if (e.key === "Escape") cerrarModal();
+  });
+  document.getElementById("modal-nombre").addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); validarYConfirmarModal(); }
+    if (e.key === "Escape") cerrarModal();
+  });
+});
 
 async function enviarSuelto() {
   const enviadoPor = document.getElementById("suelto-enviadoPor").value.trim();

@@ -4,154 +4,184 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Truco Stats</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { background: #0f172a; }
-    .card { background: #1e293b; border: 1px solid #334155; }
-    .badge-liga       { background:#16a34a22; color:#4ade80; border:1px solid #16a34a55; }
-    .badge-elim       { background:#dc262622; color:#f87171; border:1px solid #dc262655; }
-    .badge-todos      { background:#7c3aed22; color:#a78bfa; border:1px solid #7c3aed55; }
-    .badge-2v2        { background:#0ea5e922; color:#38bdf8; border:1px solid #0ea5e955; }
-    .badge-3v3        { background:#f59e0b22; color:#fbbf24; border:1px solid #f59e0b55; }
-    .badge-individual { background:#ec489922; color:#f472b6; border:1px solid #ec489955; }
-    .badge-suelto     { background:#6366f122; color:#818cf8; border:1px solid #6366f155; }
-    .badge-torneo     { background:#f9731622; color:#fb923c; border:1px solid #f9731655; }
-    .badge-final      { background:#eab30822; color:#fbbf24; border:1px solid #eab30855; }
-    .elo-bar { height:6px; background:#f97316; border-radius:3px; transition:width 0.6s ease; }
-  </style>
+  <link rel="stylesheet" href="/style.css">
 </head>
-<body class="text-slate-100 min-h-screen">
+<body>
 
-  <!-- HEADER -->
-  <header class="border-b border-slate-700 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <span class="text-3xl">&#x1F0CF;</span>
-      <div>
-        <h1 class="text-xl font-bold text-white">Truco Stats</h1>
-        <p class="text-xs text-slate-400">Historial de torneos entre amigos</p>
+  <!-- HERO -->
+  <header class="hero">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <span class="text-3xl text-gold-bright">&#x1F0CF;</span>
+        <div>
+          <h1>Truco Stats</h1>
+          <p class="ornament left italic" style="margin:0.15rem 0 0 0; font-style:italic;">Anales del juego entre amigos</p>
+        </div>
       </div>
+      <a href="/cargar.html" class="btn-gold">Cargar resultado</a>
     </div>
-    <a href="/cargar.html"
-       class="bg-orange-500 hover:bg-orange-400 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
-      + Cargar resultado
-    </a>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-10">
 
     <!-- RANKING ELO -->
     <section>
-      <h2 class="text-lg font-bold text-white mb-4">Ranking ELO</h2>
-      <div class="card rounded-xl overflow-hidden">
-        <div id="elo-loading" class="p-8 text-center text-slate-400">Cargando...</div>
-        <table id="elo-table" class="w-full hidden">
-          <thead class="bg-slate-900 text-xs text-slate-400 uppercase">
-            <tr>
-              <th class="px-4 py-3 text-left">#</th>
-              <th class="px-4 py-3 text-left">Jugador</th>
-              <th class="px-4 py-3 text-right">ELO</th>
-              <th class="px-4 py-3 hidden md:table-cell"></th>
-            </tr>
-          </thead>
-          <tbody id="elo-body" class="divide-y divide-slate-700/50"></tbody>
-        </table>
+      <div class="section-title">
+        <h2>Ranking ELO</h2>
+        <span class="meta">Hierro · Bronce · Plata · Oro · Diamante · Campeon</span>
+      </div>
+      <div class="card">
+        <div id="elo-loading" class="p-6 text-center text-muted italic">Cargando...</div>
+        <div class="scroll-y lg hidden" id="elo-wrap">
+          <table class="classic">
+            <thead>
+              <tr>
+                <th style="width:60px;">#</th>
+                <th>Jugador</th>
+                <th class="text-right">ELO</th>
+                <th class="hidden md:table-cell" style="width:140px;"></th>
+              </tr>
+            </thead>
+            <tbody id="elo-body"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
     <!-- WIN RATE + FINALES -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-      <!-- WIN RATE GENERAL -->
       <section>
-        <h2 class="text-lg font-bold text-white mb-4">Win Rate general</h2>
-        <div class="card rounded-xl overflow-hidden">
-          <div id="wr-loading" class="p-8 text-center text-slate-400">Cargando...</div>
-          <table id="wr-table" class="w-full hidden">
-            <thead class="bg-slate-900 text-xs text-slate-400 uppercase">
-              <tr>
-                <th class="px-4 py-3 text-left">Jugador</th>
-                <th class="px-4 py-3 text-center">P</th>
-                <th class="px-4 py-3 text-center">V</th>
-                <th class="px-4 py-3 text-center">D</th>
-                <th class="px-4 py-3 text-right">%</th>
-              </tr>
-            </thead>
-            <tbody id="wr-body" class="divide-y divide-slate-700/50"></tbody>
-          </table>
+        <div class="section-title"><h2>Win Rate</h2><span class="meta">Globales</span></div>
+        <div class="card">
+          <div id="wr-loading" class="p-6 text-center text-muted italic">Cargando...</div>
+          <div class="scroll-y hidden" id="wr-wrap">
+            <table class="classic">
+              <thead><tr>
+                <th>Jugador</th>
+                <th class="text-center">P</th>
+                <th class="text-center">V</th>
+                <th class="text-center">D</th>
+                <th class="text-right">%</th>
+              </tr></thead>
+              <tbody id="wr-body"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      <!-- WIN RATE EN FINALES -->
       <section>
-        <h2 class="text-lg font-bold text-white mb-4">Clutch (semifinales + finales)</h2>
-        <div class="card rounded-xl overflow-hidden">
-          <div id="fin-loading" class="p-8 text-center text-slate-400">Cargando...</div>
-          <table id="fin-table" class="w-full hidden">
-            <thead class="bg-slate-900 text-xs text-slate-400 uppercase">
-              <tr>
-                <th class="px-4 py-3 text-left">Jugador</th>
-                <th class="px-4 py-3 text-center">Jugadas</th>
-                <th class="px-4 py-3 text-center">Ganadas</th>
-                <th class="px-4 py-3 text-right">%</th>
-              </tr>
-            </thead>
-            <tbody id="fin-body" class="divide-y divide-slate-700/50"></tbody>
-          </table>
+        <div class="section-title"><h2>Clutch</h2><span class="meta">Semifinales y finales</span></div>
+        <div class="card">
+          <div id="fin-loading" class="p-6 text-center text-muted italic">Cargando...</div>
+          <div class="scroll-y hidden" id="fin-wrap">
+            <table class="classic">
+              <thead><tr>
+                <th>Jugador</th>
+                <th class="text-center">Jug</th>
+                <th class="text-center">Gan</th>
+                <th class="text-right">%</th>
+              </tr></thead>
+              <tbody id="fin-body"></tbody>
+            </table>
+          </div>
         </div>
       </section>
-
     </div>
 
-    <!-- MEJORES PAREJAS -->
-    <section>
-      <h2 class="text-lg font-bold text-white mb-4">Mejores parejas</h2>
-      <div class="card rounded-xl overflow-hidden">
-        <div id="par-loading" class="p-8 text-center text-slate-400">Cargando...</div>
-        <table id="par-table" class="w-full hidden">
-          <thead class="bg-slate-900 text-xs text-slate-400 uppercase">
-            <tr>
-              <th class="px-4 py-3 text-left">Pareja</th>
-              <th class="px-4 py-3 text-center">Partidos</th>
-              <th class="px-4 py-3 text-center">Victorias</th>
-              <th class="px-4 py-3 text-right">Win Rate</th>
-            </tr>
-          </thead>
-          <tbody id="par-body" class="divide-y divide-slate-700/50"></tbody>
-        </table>
-      </div>
-    </section>
+    <!-- PAREJAS + PEOR ENEMIGO -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section>
+        <div class="section-title"><h2>Mejores parejas</h2><span class="meta">Win rate en duos</span></div>
+        <div class="card">
+          <div id="par-loading" class="p-6 text-center text-muted italic">Cargando...</div>
+          <div class="scroll-y hidden" id="par-wrap">
+            <table class="classic">
+              <thead><tr>
+                <th>Pareja</th>
+                <th class="text-center">P</th>
+                <th class="text-center">V</th>
+                <th class="text-right">%</th>
+              </tr></thead>
+              <tbody id="par-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-    <!-- ULTIMOS TORNEOS -->
+      <section>
+        <div class="section-title"><h2>Peor enemigo</h2><span class="meta">+75% sobre rival · min 2</span></div>
+        <div class="card">
+          <div id="pe-loading" class="p-6 text-center text-muted italic">Cargando...</div>
+          <div id="pe-empty" class="p-6 text-center text-muted italic hidden">Aun no hay rivalidades marcadas.</div>
+          <div class="scroll-y hidden" id="pe-wrap">
+            <table class="classic">
+              <thead><tr>
+                <th>Cazador</th>
+                <th></th>
+                <th>Victima</th>
+                <th class="text-center">P</th>
+                <th class="text-right">%</th>
+              </tr></thead>
+              <tbody id="pe-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TORNEOS -->
     <section>
-      <h2 class="text-lg font-bold text-white mb-4">Ultimos torneos</h2>
-      <div id="torneos-loading" class="card rounded-xl p-8 text-center text-slate-400">Cargando...</div>
+      <div class="section-title"><h2>Ultimos torneos</h2><span class="meta">Recientes</span></div>
+      <div id="torneos-loading" class="card p-8 text-center text-muted italic">Cargando...</div>
       <div id="torneos-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </section>
 
-    <!-- ULTIMOS PARTIDOS -->
+    <!-- PARTIDOS -->
     <section>
-      <h2 class="text-lg font-bold text-white mb-4">Ultimos partidos</h2>
-      <div class="card rounded-xl overflow-hidden">
-        <div id="partidos-loading" class="p-8 text-center text-slate-400">Cargando...</div>
-        <div id="partidos-list" class="hidden divide-y divide-slate-700/50"></div>
+      <div class="section-title"><h2>Ultimos partidos</h2><span class="meta">Recientes</span></div>
+      <div class="card">
+        <div id="partidos-loading" class="p-6 text-center text-muted italic">Cargando...</div>
+        <div id="partidos-list" class="hidden scroll-y lg"></div>
       </div>
     </section>
 
   </main>
 
-  <footer class="text-center py-6 text-slate-600 text-xs">
-    Truco Stats &middot; <a href="/admin.html" class="hover:text-slate-400">Admin</a>
+  <footer class="footer">
+    <p class="ornament" style="margin:0;">◆</p>
+    <p style="margin:0.4rem 0 0 0;">Truco Stats &middot; <a href="/admin.html">Admin</a></p>
   </footer>
 
 <script>
-const ELO_MAX = 1400, ELO_MIN = 1000;
+const ELO_MAX = 1700, ELO_MIN = 600;
 const MEDALS = ["\u{1F947}","\u{1F948}","\u{1F949}"];
 
+const DIVISIONS = [
+  { min: 1600, name: "Campeon",  cls: "div-campeon"  },
+  { min: 1400, name: "Diamante", cls: "div-diamante" },
+  { min: 1200, name: "Oro",      cls: "div-oro"      },
+  { min: 1000, name: "Plata",    cls: "div-plata"    },
+  { min: 800,  name: "Bronce",   cls: "div-bronce"   },
+  { min: 0,    name: "Hierro",   cls: "div-hierro"   },
+];
+
+function eloDivision(elo) {
+  return DIVISIONS.find(d => elo >= d.min) || DIVISIONS[DIVISIONS.length - 1];
+}
+function divBadge(elo) {
+  const d = eloDivision(elo);
+  return `<span class="division-badge ${d.cls}">${d.name}</span>`;
+}
+
 const FORMATO_LABEL = {
-  liga: "Liga", eliminacion_directa: "Eliminacion", todos_contra_todos: "Todos vs Todos"
+  liga: "Liga", eliminacion_directa: "Eliminacion", todos_contra_todos: "Todos vs Todos", sueltos: "Sueltos"
 };
 const FORMATO_CLASS = {
-  liga: "badge-liga", eliminacion_directa: "badge-elim", todos_contra_todos: "badge-todos"
+  liga: "badge-liga", eliminacion_directa: "badge-elim", todos_contra_todos: "badge-todos", sueltos: "badge-sueltos"
 };
 const MOD_CLASS = {
   "2v2": "badge-2v2", "3v3": "badge-3v3", individual: "badge-individual"
@@ -164,106 +194,133 @@ const TIPO_PARTIDO_CLASS = {
 };
 
 function badge(text, cls) {
-  return `<span class="text-xs font-semibold px-2 py-0.5 rounded-full ${cls}">${text}</span>`;
+  return `<span class="badge ${cls}">${text}</span>`;
 }
-
 function winColor(wr) {
-  if (wr >= 60) return "text-green-400";
-  if (wr >= 40) return "text-yellow-400";
-  return "text-red-400";
+  if (wr >= 60) return "wr-high";
+  if (wr >= 40) return "wr-mid";
+  return "wr-low";
 }
 
 // ── ELO ──
 async function loadElo() {
   const data = await fetch("/api/stats/elo").then(r => r.json());
   const loading = document.getElementById("elo-loading");
-  const table   = document.getElementById("elo-table");
+  const wrap    = document.getElementById("elo-wrap");
   const tbody   = document.getElementById("elo-body");
 
   if (!data.length) { loading.textContent = "Sin datos todavia."; return; }
 
   tbody.innerHTML = data.map((j, i) => {
-    const pct = Math.round(((j.eloActual - ELO_MIN) / (ELO_MAX - ELO_MIN)) * 100);
-    const medal = MEDALS[i] ?? `<span class="text-slate-500">${i+1}</span>`;
+    const pct = Math.max(0, Math.min(100, Math.round(((j.eloActual - ELO_MIN) / (ELO_MAX - ELO_MIN)) * 100)));
+    const medal = MEDALS[i] ?? `<span class="text-muted">${i+1}</span>`;
+    const nc = j.nombreCompleto || j.username;
     return `
-      <tr class="hover:bg-slate-700/30 transition">
-        <td class="px-4 py-3 text-lg">${medal}</td>
-        <td class="px-4 py-3 font-semibold">${j.nombre}</td>
-        <td class="px-4 py-3 text-right font-mono font-bold text-orange-400">${j.eloActual}</td>
-        <td class="px-4 py-3 hidden md:table-cell w-40">
-          <div class="bg-slate-700 rounded h-1.5">
-            <div class="elo-bar" style="width:${pct}%"></div>
-          </div>
+      <tr title="${nc}">
+        <td class="medal">${medal}</td>
+        <td><span class="font-semibold">${j.username}</span>${divBadge(j.eloActual)}</td>
+        <td class="text-right elo-num">${j.eloActual}</td>
+        <td class="hidden md:table-cell w-40">
+          <div class="elo-bar-track"><div class="elo-bar-fill" style="width:${pct}%"></div></div>
         </td>
       </tr>`;
   }).join("");
 
   loading.classList.add("hidden");
-  table.classList.remove("hidden");
+  wrap.classList.remove("hidden");
 }
 
-// ── WIN RATE GENERAL ──
+// ── WIN RATE ──
 async function loadWinRate() {
   const data = await fetch("/api/stats/winrate").then(r => r.json());
   const loading = document.getElementById("wr-loading");
-  const table   = document.getElementById("wr-table");
+  const wrap    = document.getElementById("wr-wrap");
   const tbody   = document.getElementById("wr-body");
 
   if (!data.length) { loading.textContent = "Sin datos."; return; }
 
   tbody.innerHTML = data.map(j => `
-    <tr class="hover:bg-slate-700/30 transition">
-      <td class="px-4 py-3 font-semibold">${j.nombre}</td>
-      <td class="px-4 py-3 text-center text-slate-300">${j.partidos}</td>
-      <td class="px-4 py-3 text-center text-green-400">${j.victorias}</td>
-      <td class="px-4 py-3 text-center text-red-400">${j.derrotas}</td>
-      <td class="px-4 py-3 text-right font-bold ${winColor(j.winRate)}">${j.winRate}%</td>
+    <tr title="${j.nombreCompleto || j.username}">
+      <td class="font-semibold">${j.username}</td>
+      <td class="text-center text-muted">${j.partidos}</td>
+      <td class="text-center" style="color:#86efac;">${j.victorias}</td>
+      <td class="text-center" style="color:#fca5a5;">${j.derrotas}</td>
+      <td class="text-right ${winColor(j.winRate)}">${j.winRate}%</td>
     </tr>`).join("");
 
   loading.classList.add("hidden");
-  table.classList.remove("hidden");
+  wrap.classList.remove("hidden");
 }
 
 // ── FINALES ──
 async function loadFinales() {
   const data = await fetch("/api/stats/finales").then(r => r.json());
   const loading = document.getElementById("fin-loading");
-  const table   = document.getElementById("fin-table");
+  const wrap    = document.getElementById("fin-wrap");
   const tbody   = document.getElementById("fin-body");
 
   if (!data.length) { loading.textContent = "Sin datos."; return; }
 
   tbody.innerHTML = data.map(j => `
-    <tr class="hover:bg-slate-700/30 transition">
-      <td class="px-4 py-3 font-semibold">${j.nombre}</td>
-      <td class="px-4 py-3 text-center text-slate-300">${j.finalesJugadas}</td>
-      <td class="px-4 py-3 text-center text-green-400">${j.finalesGanadas}</td>
-      <td class="px-4 py-3 text-right font-bold ${winColor(j.winRate)}">${j.winRate}%</td>
+    <tr title="${j.nombreCompleto || j.username}">
+      <td class="font-semibold">${j.username}</td>
+      <td class="text-center text-muted">${j.finalesJugadas}</td>
+      <td class="text-center" style="color:#86efac;">${j.finalesGanadas}</td>
+      <td class="text-right ${winColor(j.winRate)}">${j.winRate}%</td>
     </tr>`).join("");
 
   loading.classList.add("hidden");
-  table.classList.remove("hidden");
+  wrap.classList.remove("hidden");
 }
 
 // ── PAREJAS ──
 async function loadParejas() {
   const data = await fetch("/api/stats/parejas").then(r => r.json());
   const loading = document.getElementById("par-loading");
-  const table   = document.getElementById("par-table");
+  const wrap    = document.getElementById("par-wrap");
   const tbody   = document.getElementById("par-body");
 
   if (!data.length) { loading.textContent = "Sin datos."; return; }
 
-  tbody.innerHTML = data.map(p => `
-    <tr class="hover:bg-slate-700/30 transition">
-      <td class="px-4 py-3 font-semibold">${p.nombres.join(" + ")}</td>
-      <td class="px-4 py-3 text-center text-slate-300">${p.partidos}</td>
-      <td class="px-4 py-3 text-center text-green-400">${p.victorias}</td>
-      <td class="px-4 py-3 text-right font-bold ${winColor(p.winRate)}">${p.winRate}%</td>
-    </tr>`).join("");
+  tbody.innerHTML = data.map(p => {
+    const usernames = p.usernames || p.nombres || [];
+    const ncs = p.nombresCompletos || [];
+    const tooltip = ncs.length ? ncs.join(" + ") : usernames.join(" + ");
+    return `
+    <tr title="${tooltip}">
+      <td class="font-semibold">${usernames.join(" + ")}</td>
+      <td class="text-center text-muted">${p.partidos}</td>
+      <td class="text-center" style="color:#86efac;">${p.victorias}</td>
+      <td class="text-right ${winColor(p.winRate)}">${p.winRate}%</td>
+    </tr>`;
+  }).join("");
 
   loading.classList.add("hidden");
-  table.classList.remove("hidden");
+  wrap.classList.remove("hidden");
+}
+
+// ── PEOR ENEMIGO ──
+async function loadPeorEnemigo() {
+  const data = await fetch("/api/stats/peor-enemigo").then(r => r.json());
+  const loading = document.getElementById("pe-loading");
+  const wrap    = document.getElementById("pe-wrap");
+  const empty   = document.getElementById("pe-empty");
+  const tbody   = document.getElementById("pe-body");
+
+  loading.classList.add("hidden");
+
+  if (!data.length) { empty.classList.remove("hidden"); return; }
+
+  tbody.innerHTML = data.map(p => `
+    <tr title="${p.cazadorNombreCompleto || p.cazadorUsername} vs ${p.victimaNombreCompleto || p.victimaUsername}">
+      <td class="font-semibold">${p.cazadorUsername}</td>
+      <td class="text-crimson font-semibold text-center">⚔</td>
+      <td class="text-muted">${p.victimaUsername}</td>
+      <td class="text-center text-muted">${p.victorias}/${p.partidos}</td>
+      <td class="text-right wr-high">${p.winRate}%</td>
+    </tr>`).join("");
+
+  wrap.classList.remove("hidden");
 }
 
 // ── TORNEOS ──
@@ -276,20 +333,23 @@ async function loadTorneos() {
 
   grid.innerHTML = data.map(t => {
     const fecha = new Date(t.fecha).toLocaleDateString("es-AR", { day:"2-digit", month:"short", year:"numeric" });
-    const ganadores = t.ganadorNombres?.filter(Boolean).join(" + ") || "—";
+    const usernames = t.ganadorUsernames || t.ganadorNombres || [];
+    const ncs = t.ganadorNombresCompletos || [];
+    const ganadores = usernames.filter(Boolean).join(" + ") || "—";
+    const tooltip = ncs.filter(Boolean).join(" + ") || ganadores;
     return `
-      <div class="card rounded-xl p-4 space-y-3">
+      <div class="card p-4 space-y-3">
         <div class="flex items-start justify-between gap-2">
-          <h3 class="font-bold text-white text-sm leading-tight">${t.nombre}</h3>
-          <span class="text-xs text-slate-400 whitespace-nowrap">${fecha}</span>
+          <h3 style="font-size:0.85rem; line-height:1.3;">${t.nombre}</h3>
+          <span class="text-xs text-muted whitespace-nowrap italic">${fecha}</span>
         </div>
         <div class="flex gap-2 flex-wrap">
           ${badge(FORMATO_LABEL[t.formato] ?? t.formato, FORMATO_CLASS[t.formato] ?? "")}
           ${badge(t.modalidad, MOD_CLASS[t.modalidad] ?? "")}
         </div>
-        <div class="border-t border-slate-700 pt-2">
-          <p class="text-xs text-slate-400">Ganador</p>
-          <p class="font-semibold text-orange-400">${ganadores}</p>
+        <div style="border-top:1px solid var(--gold-faint); padding-top:0.5rem;">
+          <p class="text-xs text-muted" style="letter-spacing:0.1em; text-transform:uppercase; font-family:var(--serif);">Ganador</p>
+          <p class="font-semibold text-gold-bright" title="${tooltip}">${ganadores}</p>
         </div>
       </div>`;
   }).join("");
@@ -298,7 +358,7 @@ async function loadTorneos() {
   grid.classList.remove("hidden");
 }
 
-// ── PARTIDOS RECIENTES ──
+// ── PARTIDOS ──
 async function loadPartidos() {
   const data = await fetch("/api/stats/partidos").then(r => r.json());
   const loading = document.getElementById("partidos-loading");
@@ -308,28 +368,37 @@ async function loadPartidos() {
 
   list.innerHTML = data.map(p => {
     const fecha = new Date(p.fecha).toLocaleDateString("es-AR", { day:"2-digit", month:"short", year:"numeric" });
-    const eqA = p.equipoANombres?.join(" + ") || "?";
-    const eqB = p.equipoBNombres?.join(" + ") || "?";
-    const ganador = p.ganadorNombres?.join(" + ") || "?";
+    const eqAusers = p.equipoAUsernames || p.equipoANombres || [];
+    const eqBusers = p.equipoBUsernames || p.equipoBNombres || [];
+    const ganUsers = p.ganadorUsernames || p.ganadorNombres || [];
+    const eqAncs   = p.equipoANombresCompletos || [];
+    const eqBncs   = p.equipoBNombresCompletos || [];
+    const ganNcs   = p.ganadorNombresCompletos || [];
+    const eqA = eqAusers.join(" + ") || "?";
+    const eqB = eqBusers.join(" + ") || "?";
+    const ganador = ganUsers.join(" + ") || "?";
     const tipo = TIPO_PARTIDO_LABEL[p.tipoPartido] || p.tipoPartido;
     const tipoCls = TIPO_PARTIDO_CLASS[p.tipoPartido] || "";
-    const torneoLabel = p.torneoNombre ? ` - ${p.torneoNombre}` : "";
+    const torneoLabel = p.torneoNombre ? ` · ${p.torneoNombre}` : "";
+    const tipA = eqAncs.length ? eqAncs.join(" + ") : eqA;
+    const tipB = eqBncs.length ? eqBncs.join(" + ") : eqB;
+    const tipG = ganNcs.length ? ganNcs.join(" + ") : ganador;
 
     return `
-      <div class="px-4 py-3 hover:bg-slate-700/30 transition">
+      <div class="px-4 py-3" style="border-bottom: 1px solid rgba(201, 164, 90, 0.07);">
         <div class="flex items-center justify-between mb-1">
           <div class="flex items-center gap-2">
             ${badge(tipo, tipoCls)}
-            ${p.ronda && p.ronda !== "partido_suelto" ? `<span class="text-xs text-slate-500">${p.ronda}${torneoLabel}</span>` : ""}
+            ${p.ronda && p.ronda !== "partido_suelto" ? `<span class="text-xs text-muted italic">${p.ronda}${torneoLabel}</span>` : ""}
           </div>
-          <span class="text-xs text-slate-500">${fecha}</span>
+          <span class="text-xs text-muted italic">${fecha}</span>
         </div>
         <div class="flex items-center gap-2 text-sm">
-          <span class="${ganador === eqA ? 'text-green-400 font-bold' : 'text-slate-300'}">${eqA}</span>
-          <span class="text-slate-600">vs</span>
-          <span class="${ganador === eqB ? 'text-green-400 font-bold' : 'text-slate-300'}">${eqB}</span>
+          <span class="${ganador === eqA ? 'text-gold-bright font-semibold' : 'text-cream'}" title="${tipA}">${eqA}</span>
+          <span class="text-muted italic">vs</span>
+          <span class="${ganador === eqB ? 'text-gold-bright font-semibold' : 'text-cream'}" title="${tipB}">${eqB}</span>
         </div>
-        <div class="text-xs text-orange-400 mt-1">Ganador: ${ganador}</div>
+        <div class="text-xs text-gold mt-1" title="${tipG}">Ganador: <span class="text-gold-bright font-semibold">${ganador}</span></div>
       </div>`;
   }).join("");
 
@@ -337,8 +406,15 @@ async function loadPartidos() {
   list.classList.remove("hidden");
 }
 
-// Cargar todo en paralelo
-Promise.all([loadElo(), loadWinRate(), loadFinales(), loadParejas(), loadTorneos(), loadPartidos()]);
+Promise.all([
+  loadElo(),
+  loadWinRate(),
+  loadFinales(),
+  loadParejas(),
+  loadPeorEnemigo(),
+  loadTorneos(),
+  loadPartidos(),
+]);
 </script>
 </body>
 </html>
