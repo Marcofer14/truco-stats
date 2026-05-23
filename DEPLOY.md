@@ -1,80 +1,83 @@
-# Guía de deploy — Truco Stats
+# Deploy en Render — backend Python
 
-## Paso 1 — Subir el código a GitHub
+## Pre-requisitos
 
-1. Creá una cuenta en https://github.com si no tenés
-2. Creá un repositorio nuevo (ej: `truco-stats`), que sea **privado**
-3. Descargá e instalá GitHub Desktop: https://desktop.github.com
-4. En GitHub Desktop: File → Add local repository → seleccioná la carpeta `truco-app`
-5. Hacé commit de todos los archivos y luego "Publish repository"
+- Cuenta en MongoDB Atlas (free tier M0 alcanza).
+- Cuenta en Render.com.
+- Cuenta en Upstash (Redis free tier) o Render Key Value.
 
----
+## Setup nuevo
 
-## Paso 2 — Crear la base de datos en MongoDB Atlas (gratis)
+### 1. MongoDB Atlas
 
-1. Entrá a https://cloud.mongodb.com y creá una cuenta
-2. Creá un **nuevo proyecto** (ej: `truco`)
-3. Creá un **cluster gratis** (M0 Free Tier)
-4. En "Database Access": creá un usuario con contraseña fuerte — guardá las credenciales
-5. En "Network Access": Add IP Address → **Allow access from anywhere** (0.0.0.0/0)
-6. En el cluster, hacé clic en **Connect** → Drivers → copiá el string de conexión:
-   ```
-   mongodb+srv://<usuario>:<password>@cluster0.xxxxx.mongodb.net/truco_db
-   ```
-7. Reemplazá `<usuario>` y `<password>` con los datos del paso 4
+1. Creá un cluster gratis M0.
+2. En "Database Access" creá un usuario con contraseña.
+3. En "Network Access" → "Allow access from anywhere" (`0.0.0.0/0`).
+4. Click "Connect" → "Drivers" → Python → copiá el connection string.
+5. Reemplazá `<password>` con la del paso 2.
 
----
+### 2. Redis (Upstash)
 
-## Paso 3 — Migrar la data existente a Atlas
+1. Entrá a [upstash.com](https://upstash.com), creá una cuenta.
+2. Create database → Type: Regional → Name: `truco-stats`.
+3. Copiá la `UPSTASH_REDIS_REST_URL` — NO, querés la **Redis CLI URL** (formato `rediss://default:password@host:port`).
 
-Con Compass ya tenés la data en tu MongoDB local. Para copiarla a Atlas:
+### 3. Render
 
-1. Abrí Compass
-2. Conectate a tu MongoDB local (`localhost:27017`)
-3. Entrá a cada colección (jugadores, torneos, partidos, elo_historial)
-4. Hacé clic en **Export** → exportar como JSON
-5. Conectate a Atlas con el string del paso anterior
-6. En cada colección en Atlas: **Import** → subí el JSON exportado
-
----
-
-## Paso 4 — Deploy en Render (gratis, siempre online)
-
-1. Creá cuenta en https://render.com
-2. Hacé clic en **New** → **Web Service**
-3. Conectá tu cuenta de GitHub y seleccioná el repo `truco-stats`
-4. Configurá el servicio:
-   - **Name**: truco-stats
-   - **Runtime**: Node
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
+1. New → Web Service → conectá el repo.
+2. Configurá:
+   - **Runtime**: Python 3
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn server:app --host 0.0.0.0 --port $PORT`
    - **Instance Type**: Free
-5. En **Environment Variables**, agregá:
+3. En **Environment Variables**:
    ```
-   MONGO_URI     = (el string de conexión de Atlas del paso 2)
-   ADMIN_PASSWORD = (tu contraseña secreta para el panel admin)
+   MONGO_URI       = (de Atlas)
+   ADMIN_PASSWORD  = (tu pass del panel admin)
+   REDIS_URL       = (de Upstash, rediss://...)
    ```
-6. Hacé clic en **Create Web Service**
+4. Create Web Service.
 
-Render va a buildear y deploear automáticamente. En ~2 minutos tenés la URL:
+Render buildea y deploya. URL final: `https://truco-stats.onrender.com`.
+
+## Migración desde el backend Node
+
+Si tu deploy actual está corriendo Node (`server.js`) y querés switchear a Python:
+
+1. Verificá que `requirements.txt`, `runtime.txt`, `Procfile` y `server.py` están en el repo.
+2. En Render → Settings de tu service:
+   - Cambiá **Runtime** a `Python 3`.
+   - Cambiá **Build Command** a `pip install -r requirements.txt`.
+   - Cambiá **Start Command** a `uvicorn server:app --host 0.0.0.0 --port $PORT`.
+3. Agregá `REDIS_URL` en Environment.
+4. Save & deploy. Tarda ~2 min.
+
+El frontend (`public/`) no necesita cambios — los endpoints tienen el mismo shape JSON.
+
+## Seed inicial
+
+Para arrancar con data de prueba:
+
+```bash
+# Localmente, con MONGO_URI seteado en .env:
+python seed.py --force
 ```
-https://truco-stats.onrender.com
+
+El script:
+- Borra todas las colecciones de `truco_db`.
+- Crea los índices ESR.
+- Inserta 12 jugadores, 1 torneo (6 partidos round-robin), 4 partidos sueltos, 1 pendiente sin aprobar.
+- Después se puede levantar `uvicorn server:app --reload` y todos los endpoints devuelven data.
+
+## Plan gratis de Render
+
+El plan gratis "duerme" la app después de 15 min sin tráfico. La primera visita tarda ~30 s en despertar. Esto no afecta la data — Mongo y Redis siguen activos.
+
+## Cómo verificar que está sirviendo Python (no Node)
+
+```bash
+curl https://truco-stats.onrender.com/api/health
+# {"status":"ok","service":"truco-stats","stack":"python+pymongo"}
 ```
 
----
-
-## Resultado final
-
-| URL | Qué hace |
-|-----|----------|
-| `tuapp.onrender.com` | Stats públicas (ELO, win rate, etc.) |
-| `tuapp.onrender.com/cargar.html` | Formulario para que tus amigos carguen torneos |
-| `tuapp.onrender.com/admin.html` | Tu panel privado para aprobar/rechazar |
-
----
-
-## Nota sobre el plan gratuito de Render
-
-El plan gratuito "duerme" la app después de 15 minutos sin visitas.
-La primera visita tarda ~30 segundos en despertar. Esto es normal y no afecta la data.
-Si querés que esté siempre activa, el plan Starter cuesta USD 7/mes.
+Si responde `Cannot GET /api/health` o algo de Express, todavía estás en Node.
