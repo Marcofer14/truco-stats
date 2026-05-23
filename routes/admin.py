@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from db.client import get_db, get_mongo_client
 from db.serialize import to_jsonable
 from services.auth import admin_auth
+from services.cache import invalidate_all_after_write
 from services.slots import USERNAME_RE
 from services.transactions import aprobar_pendiente_atomico
 
@@ -63,15 +64,18 @@ def listar_pendientes():
 @router.post("/api/admin/aprobar/{pendiente_id}")
 def aprobar(pendiente_id: str):
     pid = _validar_oid(pendiente_id)
+    db = get_db()
     try:
-        aprobar_pendiente_atomico(pid, get_mongo_client(), get_db())
-        return {"ok": True, "mensaje": "Aprobado y publicado."}
+        aprobar_pendiente_atomico(pid, get_mongo_client(), db)
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en transaccion: {e}")
+    # Post-commit: refrescar leaderboard + feed + cache invalido
+    invalidate_all_after_write(db)
+    return {"ok": True, "mensaje": "Aprobado y publicado."}
 
 
 @router.post("/api/admin/rechazar/{pendiente_id}")
@@ -141,4 +145,7 @@ async def editar_jugador(jugador_id: str, req: Request):
     r = db.jugadores.update_one({"_id": jid}, {"$set": update})
     if r.matched_count == 0:
         raise HTTPException(status_code=404, detail="Jugador no encontrado.")
+    # Si cambio username o activo, el leaderboard puede haber cambiado
+    if "username" in update or "activo" in update:
+        invalidate_all_after_write(db)
     return {"ok": True}

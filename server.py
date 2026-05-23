@@ -16,6 +16,7 @@ from routes.admin import router as admin_router
 from routes.jugadores import router as jugadores_router
 from routes.pendientes import router as pendientes_router
 from routes.stats import router as stats_router
+from services.cache import invalidate_all_after_write
 
 load_dotenv()
 
@@ -25,7 +26,9 @@ async def lifespan(_app: FastAPI):
     """Conecta Mongo + Redis al startup, cierra al shutdown."""
     db = connect_mongo()
     ensure_indexes(db)
-    connect_redis()  # opcional: si falla, seguimos sin cache
+    if connect_redis():
+        # Warmup: poblar Sorted Set y List desde Mongo al arrancar
+        invalidate_all_after_write(db)
     yield
     close_all()
 

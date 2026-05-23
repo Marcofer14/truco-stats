@@ -12,6 +12,13 @@ from fastapi import APIRouter, HTTPException, Query
 
 from db.client import get_db
 from db.serialize import to_jsonable
+from services.cache import (
+    feed_get,
+    feed_push,
+    lb_get_all,
+    stats_cache_get,
+    stats_cache_set,
+)
 
 router = APIRouter()
 
@@ -37,9 +44,32 @@ def _prepend_filter(pipeline: list, modalidad: Optional[str]) -> list:
 # ── /api/stats/elo ───────────────────────────────────────────────────────────
 @router.get("/api/stats/elo")
 def stats_elo():
-    """Ranking global por ELO actual. No depende de modalidad."""
+    """Ranking global por ELO actual.
+
+    Estrategia: leemos el orden desde Redis Sorted Set `lb:elo` cuando esta
+    disponible (write-through al aprobar); fallback a Mongo si Redis no
+    responde o el set esta vacio. nombreCompleto SIEMPRE viene de Mongo
+    (Redis solo guarda username + elo).
+    """
     try:
         db = get_db()
+        lb = lb_get_all()
+        if lb:
+            # Redis nos da el orden; resolvemos nombreCompleto desde Mongo
+            usernames = [u for u, _ in lb]
+            jugadores_docs = list(db.jugadores.find(
+                {"username": {"$in": usernames}},
+                {"username": 1, "nombreCompleto": 1, "eloActual": 1},
+            ))
+            by_username = {j["username"]: j for j in jugadores_docs}
+            result = []
+            for username, elo in lb:
+                j = by_username.get(username)
+                if j:
+                    result.append(j)
+            return to_jsonable(result)
+
+        # Fallback: Mongo directo
         cursor = (
             db.jugadores
             .find({}, {"username": 1, "nombreCompleto": 1, "eloActual": 1})
@@ -53,6 +83,9 @@ def stats_elo():
 # ── /api/stats/winrate ───────────────────────────────────────────────────────
 @router.get("/api/stats/winrate")
 def stats_winrate(modalidad: Optional[str] = None):
+    cached = stats_cache_get("winrate", modalidad)
+    if cached is not None:
+        return cached
     try:
         db = get_db()
         pipeline = _prepend_filter([
@@ -79,7 +112,9 @@ def stats_winrate(modalidad: Optional[str] = None):
             }},
             {"$sort": {"winRate": -1}},
         ], modalidad)
-        return to_jsonable(list(db.partidos.aggregate(pipeline)))
+        result = to_jsonable(list(db.partidos.aggregate(pipeline)))
+        stats_cache_set("winrate", modalidad, result)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -87,6 +122,9 @@ def stats_winrate(modalidad: Optional[str] = None):
 # ── /api/stats/parejas ───────────────────────────────────────────────────────
 @router.get("/api/stats/parejas")
 def stats_parejas(modalidad: Optional[str] = None):
+    cached = stats_cache_get("parejas", modalidad)
+    if cached is not None:
+        return cached
     try:
         db = get_db()
         pipeline = _prepend_filter([
@@ -136,7 +174,9 @@ def stats_parejas(modalidad: Optional[str] = None):
             {"$sort": {"winRate": -1, "partidos": -1}},
             {"$limit": 10},
         ], modalidad)
-        return to_jsonable(list(db.partidos.aggregate(pipeline)))
+        result = to_jsonable(list(db.partidos.aggregate(pipeline)))
+        stats_cache_set("parejas", modalidad, result)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -144,6 +184,9 @@ def stats_parejas(modalidad: Optional[str] = None):
 # ── /api/stats/torneos ───────────────────────────────────────────────────────
 @router.get("/api/stats/torneos")
 def stats_torneos():
+    cached = stats_cache_get("torneos", None)
+    if cached is not None:
+        return cached
     try:
         db = get_db()
         pipeline = [
@@ -165,7 +208,9 @@ def stats_torneos():
                 "equipoGanador": 1,
             }},
         ]
-        return to_jsonable(list(db.torneos.aggregate(pipeline)))
+        result = to_jsonable(list(db.torneos.aggregate(pipeline)))
+        stats_cache_set("torneos", None, result)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -173,6 +218,9 @@ def stats_torneos():
 # ── /api/stats/finales ───────────────────────────────────────────────────────
 @router.get("/api/stats/finales")
 def stats_finales(modalidad: Optional[str] = None):
+    cached = stats_cache_get("finales", modalidad)
+    if cached is not None:
+        return cached
     try:
         db = get_db()
         pipeline = _prepend_filter([
@@ -199,7 +247,9 @@ def stats_finales(modalidad: Optional[str] = None):
             }},
             {"$sort": {"winRate": -1}},
         ], modalidad)
-        return to_jsonable(list(db.partidos.aggregate(pipeline)))
+        result = to_jsonable(list(db.partidos.aggregate(pipeline)))
+        stats_cache_set("finales", modalidad, result)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -208,6 +258,9 @@ def stats_finales(modalidad: Optional[str] = None):
 @router.get("/api/stats/peor-enemigo")
 def stats_peor_enemigo(modalidad: Optional[str] = None):
     """Pares (A, B) donde A le gana a B >75% en >=2 enfrentamientos."""
+    cached = stats_cache_get("peor-enemigo", modalidad)
+    if cached is not None:
+        return cached
     try:
         db = get_db()
         pipeline = _prepend_filter([
@@ -273,7 +326,9 @@ def stats_peor_enemigo(modalidad: Optional[str] = None):
             {"$sort": {"winRate": -1, "partidos": -1}},
             {"$limit": 30},
         ], modalidad)
-        return to_jsonable(list(db.partidos.aggregate(pipeline)))
+        result = to_jsonable(list(db.partidos.aggregate(pipeline)))
+        stats_cache_set("peor-enemigo", modalidad, result)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -281,6 +336,9 @@ def stats_peor_enemigo(modalidad: Optional[str] = None):
 # ── /api/stats/partidos ──────────────────────────────────────────────────────
 @router.get("/api/stats/partidos")
 def stats_partidos(modalidad: Optional[str] = None):
+    cached = stats_cache_get("partidos", modalidad)
+    if cached is not None:
+        return cached
     try:
         db = get_db()
         pipeline = _prepend_filter([
@@ -306,7 +364,9 @@ def stats_partidos(modalidad: Optional[str] = None):
                 "eloSnapshot": 1,
             }},
         ], modalidad)
-        return to_jsonable(list(db.partidos.aggregate(pipeline)))
+        result = to_jsonable(list(db.partidos.aggregate(pipeline)))
+        stats_cache_set("partidos", modalidad, result)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -315,6 +375,9 @@ def stats_partidos(modalidad: Optional[str] = None):
 @router.get("/api/stats/rachas")
 def stats_rachas(modalidad: Optional[str] = None):
     """Racha actual (W/L), maxima de ganadas y de perdidas por jugador."""
+    cached = stats_cache_get("rachas", modalidad)
+    if cached is not None:
+        return cached
     try:
         db = get_db()
         filt = modalidad_filter(modalidad) or {}
@@ -383,7 +446,9 @@ def stats_rachas(modalidad: Optional[str] = None):
             0 if r["actualGano"] else 1,
             -r["actualLen"] if r["actualGano"] else r["actualLen"],
         ))
-        return to_jsonable(result)
+        ser = to_jsonable(result)
+        stats_cache_set("rachas", modalidad, ser)
+        return ser
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
