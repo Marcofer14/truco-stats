@@ -6,66 +6,79 @@
   <title>Truco Stats</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
   <!-- HERO -->
   <header class="hero">
-    <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
-      <div class="flex items-center gap-4">
-        <span class="text-3xl text-gold-bright">&#x1F0CF;</span>
-        <div>
-          <h1>Truco Stats</h1>
-          <p class="ornament left italic" style="margin:0.15rem 0 0 0; font-style:italic;">Anales del juego entre amigos</p>
-        </div>
+    <div style="max-width: 1180px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+      <div>
+        <h1>TRUCO <span class="accent">STATS</span></h1>
+        <p class="subtitle">Anales del juego entre amigos</p>
       </div>
-      <a href="/cargar.html" class="btn-gold">Cargar resultado</a>
+      <a href="/cargar.html" class="btn btn-red no-underline">+ Cargar resultado</a>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-8 space-y-10">
+  <main style="max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem;">
 
-    <!-- RANKING ELO -->
-    <section>
-      <div class="section-title">
-        <h2>Ranking ELO</h2>
-        <span class="meta">Hierro · Bronce · Plata · Oro · Diamante · Campeon</span>
-      </div>
-      <div class="card">
-        <div id="elo-loading" class="p-6 text-center text-muted italic">Cargando...</div>
-        <div class="scroll-y lg hidden" id="elo-wrap">
-          <table class="classic">
-            <thead>
-              <tr>
-                <th style="width:60px;">#</th>
-                <th>Jugador</th>
-                <th class="text-right">ELO</th>
-                <th class="hidden md:table-cell" style="width:140px;"></th>
-              </tr>
-            </thead>
-            <tbody id="elo-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+    <!-- TABS MODALIDAD -->
+    <div class="tabs-mod">
+      <div class="tab-mod active" data-mod="all" onclick="setModalidad('all')">Todos</div>
+      <div class="tab-mod"        data-mod="2v2" onclick="setModalidad('2v2')">2 v 2</div>
+      <div class="tab-mod"        data-mod="3v3" onclick="setModalidad('3v3')">3 v 3</div>
+      <div class="tab-mod"        data-mod="individual" onclick="setModalidad('individual')">1 v 1</div>
+    </div>
 
-    <!-- WIN RATE + FINALES -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <section>
-        <div class="section-title"><h2>Win Rate</h2><span class="meta">Globales</span></div>
+    <!-- ROW 1: Ranking grande + Divisiones -->
+    <div class="bento">
+
+      <section class="span-4">
         <div class="card">
-          <div id="wr-loading" class="p-6 text-center text-muted italic">Cargando...</div>
-          <div class="scroll-y hidden" id="wr-wrap">
+          <div class="card-header">
+            <span>Ranking ELO</span>
+            <span class="meta">Global · sin filtro de modalidad</span>
+          </div>
+          <div id="elo-loading" class="card-body padded muted italic">Cargando...</div>
+          <div class="scroll-y lg" id="elo-wrap" style="display:none;">
+            <table class="classic">
+              <thead><tr>
+                <th style="width:50px;">#</th>
+                <th>Jugador</th>
+                <th class="num text-right" style="text-align:right;">ELO</th>
+                <th style="width:140px;"></th>
+              </tr></thead>
+              <tbody id="elo-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="span-2">
+        <div class="card card-deco-square">
+          <div class="card-header yellow">Divisiones</div>
+          <div id="div-summary" class="card-body"></div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ROW 2: WR + Clutch + Rachas -->
+    <div class="bento">
+      <section class="span-2">
+        <div class="card">
+          <div class="card-header blue">Win Rate</div>
+          <div id="wr-loading" class="card-body padded muted italic">Cargando...</div>
+          <div class="scroll-y" id="wr-wrap" style="display:none;">
             <table class="classic">
               <thead><tr>
                 <th>Jugador</th>
-                <th class="text-center">P</th>
-                <th class="text-center">V</th>
-                <th class="text-center">D</th>
-                <th class="text-right">%</th>
+                <th class="num" style="text-align:center;">P</th>
+                <th class="num" style="text-align:center;">V</th>
+                <th class="num" style="text-align:center;">D</th>
+                <th class="num" style="text-align:right;">%</th>
               </tr></thead>
               <tbody id="wr-body"></tbody>
             </table>
@@ -73,38 +86,56 @@
         </div>
       </section>
 
-      <section>
-        <div class="section-title"><h2>Clutch</h2><span class="meta">Semifinales y finales</span></div>
+      <section class="span-2">
         <div class="card">
-          <div id="fin-loading" class="p-6 text-center text-muted italic">Cargando...</div>
-          <div class="scroll-y hidden" id="fin-wrap">
+          <div class="card-header red">Clutch</div>
+          <div id="fin-loading" class="card-body padded muted italic">Cargando...</div>
+          <div class="scroll-y" id="fin-wrap" style="display:none;">
             <table class="classic">
               <thead><tr>
                 <th>Jugador</th>
-                <th class="text-center">Jug</th>
-                <th class="text-center">Gan</th>
-                <th class="text-right">%</th>
+                <th class="num" style="text-align:center;">Jug</th>
+                <th class="num" style="text-align:center;">Gan</th>
+                <th class="num" style="text-align:right;">%</th>
               </tr></thead>
               <tbody id="fin-body"></tbody>
             </table>
           </div>
         </div>
       </section>
+
+      <section class="span-2">
+        <div class="card">
+          <div class="card-header yellow">Rachas</div>
+          <div id="rac-loading" class="card-body padded muted italic">Cargando...</div>
+          <div id="rac-empty" class="card-body padded muted italic" style="display:none;">Sin partidos en esta modalidad.</div>
+          <div class="scroll-y" id="rac-wrap" style="display:none;">
+            <table class="classic">
+              <thead><tr>
+                <th>Jugador</th>
+                <th style="text-align:center;">Actual</th>
+                <th class="num" style="text-align:right;">Max W / L</th>
+              </tr></thead>
+              <tbody id="rac-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- PAREJAS + PEOR ENEMIGO -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <section>
-        <div class="section-title"><h2>Mejores parejas</h2><span class="meta">Win rate en duos</span></div>
+    <!-- ROW 3: Parejas + Peor Enemigo -->
+    <div class="bento">
+      <section class="span-3">
         <div class="card">
-          <div id="par-loading" class="p-6 text-center text-muted italic">Cargando...</div>
-          <div class="scroll-y hidden" id="par-wrap">
+          <div class="card-header">Mejores parejas</div>
+          <div id="par-loading" class="card-body padded muted italic">Cargando...</div>
+          <div class="scroll-y" id="par-wrap" style="display:none;">
             <table class="classic">
               <thead><tr>
                 <th>Pareja</th>
-                <th class="text-center">P</th>
-                <th class="text-center">V</th>
-                <th class="text-right">%</th>
+                <th class="num" style="text-align:center;">P</th>
+                <th class="num" style="text-align:center;">V</th>
+                <th class="num" style="text-align:right;">%</th>
               </tr></thead>
               <tbody id="par-body"></tbody>
             </table>
@@ -112,19 +143,23 @@
         </div>
       </section>
 
-      <section>
-        <div class="section-title"><h2>Peor enemigo</h2><span class="meta">+75% sobre rival · min 2</span></div>
-        <div class="card">
-          <div id="pe-loading" class="p-6 text-center text-muted italic">Cargando...</div>
-          <div id="pe-empty" class="p-6 text-center text-muted italic hidden">Aun no hay rivalidades marcadas.</div>
-          <div class="scroll-y hidden" id="pe-wrap">
+      <section class="span-3">
+        <div class="card card-deco-tri">
+          <div class="card-header red">Peor enemigo</div>
+          <div class="card-body" style="padding:0.4rem 1rem 0; font-size:0.75rem; color:var(--text-muted);">
+            +75% sobre rival · min 2 partidos · click para detalle
+          </div>
+          <div id="pe-loading" class="card-body padded muted italic">Cargando...</div>
+          <div id="pe-empty" class="card-body padded muted italic" style="display:none;">Aun no hay rivalidades marcadas.</div>
+          <div class="scroll-y" id="pe-wrap" style="display:none;">
             <table class="classic">
               <thead><tr>
                 <th>Cazador</th>
                 <th></th>
                 <th>Victima</th>
-                <th class="text-center">P</th>
-                <th class="text-right">%</th>
+                <th class="num" style="text-align:center;">P</th>
+                <th class="num" style="text-align:right;">%</th>
+                <th style="width:20px;"></th>
               </tr></thead>
               <tbody id="pe-body"></tbody>
             </table>
@@ -134,27 +169,38 @@
     </div>
 
     <!-- TORNEOS -->
-    <section>
-      <div class="section-title"><h2>Ultimos torneos</h2><span class="meta">Recientes</span></div>
-      <div id="torneos-loading" class="card p-8 text-center text-muted italic">Cargando...</div>
-      <div id="torneos-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    <section style="margin-bottom:1.25rem;">
+      <div class="card">
+        <div class="card-header blue">Ultimos torneos</div>
+        <div id="torneos-loading" class="card-body padded muted italic">Cargando...</div>
+        <div id="torneos-grid" class="card-body padded" style="display:none; display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:1rem;"></div>
+      </div>
     </section>
 
     <!-- PARTIDOS -->
     <section>
-      <div class="section-title"><h2>Ultimos partidos</h2><span class="meta">Recientes</span></div>
       <div class="card">
-        <div id="partidos-loading" class="p-6 text-center text-muted italic">Cargando...</div>
-        <div id="partidos-list" class="hidden scroll-y lg"></div>
+        <div class="card-header">Ultimos partidos</div>
+        <div id="partidos-loading" class="card-body padded muted italic">Cargando...</div>
+        <div id="partidos-list" class="scroll-y lg" style="display:none;"></div>
       </div>
     </section>
 
   </main>
 
   <footer class="footer">
-    <p class="ornament" style="margin:0;">◆</p>
-    <p style="margin:0.4rem 0 0 0;">Truco Stats &middot; <a href="/admin.html">Admin</a></p>
+    Truco Stats &middot; <a href="/admin.html">Admin</a>
   </footer>
+
+  <!-- MODAL: Head to Head -->
+  <div id="modal-h2h" class="modal-overlay">
+    <div class="modal-card lg" id="modal-h2h-card">
+      <div id="h2h-content">Cargando...</div>
+      <div style="margin-top:1rem; text-align:right;">
+        <button onclick="cerrarH2H()" class="btn">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
 <script>
 const ELO_MAX = 1700, ELO_MIN = 600;
@@ -172,9 +218,13 @@ const DIVISIONS = [
 function eloDivision(elo) {
   return DIVISIONS.find(d => elo >= d.min) || DIVISIONS[DIVISIONS.length - 1];
 }
-function divBadge(elo) {
+function divTag(elo) {
   const d = eloDivision(elo);
-  return `<span class="division-badge ${d.cls}">${d.name}</span>`;
+  return `<span class="division-tag"><span class="division-dot ${d.cls}"></span>${d.name}</span>`;
+}
+function divDot(elo) {
+  const d = eloDivision(elo);
+  return `<span class="division-dot ${d.cls}"></span>`;
 }
 
 const FORMATO_LABEL = {
@@ -193,94 +243,108 @@ const TIPO_PARTIDO_CLASS = {
   partido_suelto: "badge-suelto", torneo: "badge-torneo", final: "badge-final"
 };
 
-function badge(text, cls) {
-  return `<span class="badge ${cls}">${text}</span>`;
-}
+function badge(text, cls) { return `<span class="badge ${cls}">${text}</span>`; }
 function winColor(wr) {
   if (wr >= 60) return "wr-high";
   if (wr >= 40) return "wr-mid";
   return "wr-low";
 }
 
-// ── ELO ──
+let currentMod = "all";
+function modParam() { return currentMod === "all" ? "" : `?modalidad=${currentMod}`; }
+
+// ── ELO (global, no filtra por modalidad) ──
 async function loadElo() {
   const data = await fetch("/api/stats/elo").then(r => r.json());
   const loading = document.getElementById("elo-loading");
   const wrap    = document.getElementById("elo-wrap");
   const tbody   = document.getElementById("elo-body");
-
   if (!data.length) { loading.textContent = "Sin datos todavia."; return; }
 
   tbody.innerHTML = data.map((j, i) => {
     const pct = Math.max(0, Math.min(100, Math.round(((j.eloActual - ELO_MIN) / (ELO_MAX - ELO_MIN)) * 100)));
-    const medal = MEDALS[i] ?? `<span class="text-muted">${i+1}</span>`;
+    const medal = MEDALS[i] ?? `<span class="muted heavy">${i+1}</span>`;
     const nc = j.nombreCompleto || j.username;
     return `
       <tr title="${nc}">
-        <td class="medal">${medal}</td>
-        <td><span class="font-semibold">${j.username}</span>${divBadge(j.eloActual)}</td>
-        <td class="text-right elo-num">${j.eloActual}</td>
-        <td class="hidden md:table-cell w-40">
-          <div class="elo-bar-track"><div class="elo-bar-fill" style="width:${pct}%"></div></div>
-        </td>
+        <td>${medal}</td>
+        <td><span class="cell-name">${j.username}</span>${divTag(j.eloActual)}</td>
+        <td class="num elo-num" style="text-align:right;">${j.eloActual}</td>
+        <td><div class="elo-bar-track"><div class="elo-bar-fill" style="width:${pct}%"></div></div></td>
       </tr>`;
   }).join("");
 
-  loading.classList.add("hidden");
-  wrap.classList.remove("hidden");
+  loading.style.display = "none";
+  wrap.style.display = "block";
+
+  // Tambien actualizar el resumen de divisiones
+  renderDivisionSummary(data);
+}
+
+function renderDivisionSummary(data) {
+  const counts = {};
+  for (const j of data) {
+    const d = eloDivision(j.eloActual);
+    counts[d.name] = (counts[d.name] ?? 0) + 1;
+  }
+  const cont = document.getElementById("div-summary");
+  cont.innerHTML = DIVISIONS.map(d => {
+    const c = counts[d.name] ?? 0;
+    return `<div class="div-row">
+      <span class="name"><span class="division-dot ${d.cls}"></span>${d.name}</span>
+      <span class="count ${c === 0 ? 'muted' : ''}">${c}</span>
+    </div>`;
+  }).join("");
 }
 
 // ── WIN RATE ──
 async function loadWinRate() {
-  const data = await fetch("/api/stats/winrate").then(r => r.json());
+  const data = await fetch(`/api/stats/winrate${modParam()}`).then(r => r.json());
   const loading = document.getElementById("wr-loading");
   const wrap    = document.getElementById("wr-wrap");
   const tbody   = document.getElementById("wr-body");
-
-  if (!data.length) { loading.textContent = "Sin datos."; return; }
+  if (!data.length) { loading.textContent = "Sin datos."; wrap.style.display = "none"; loading.style.display = "block"; return; }
 
   tbody.innerHTML = data.map(j => `
     <tr title="${j.nombreCompleto || j.username}">
-      <td class="font-semibold">${j.username}</td>
-      <td class="text-center text-muted">${j.partidos}</td>
-      <td class="text-center" style="color:#86efac;">${j.victorias}</td>
-      <td class="text-center" style="color:#fca5a5;">${j.derrotas}</td>
-      <td class="text-right ${winColor(j.winRate)}">${j.winRate}%</td>
+      <td class="cell-name">${j.username}</td>
+      <td class="num muted" style="text-align:center;">${j.partidos}</td>
+      <td class="num" style="text-align:center; color:var(--green);">${j.victorias}</td>
+      <td class="num" style="text-align:center; color:var(--red);">${j.derrotas}</td>
+      <td class="num ${winColor(j.winRate)}" style="text-align:right;">${j.winRate}%</td>
     </tr>`).join("");
 
-  loading.classList.add("hidden");
-  wrap.classList.remove("hidden");
+  loading.style.display = "none";
+  wrap.style.display = "block";
 }
 
-// ── FINALES ──
+// ── FINALES / CLUTCH ──
 async function loadFinales() {
-  const data = await fetch("/api/stats/finales").then(r => r.json());
+  const data = await fetch(`/api/stats/finales${modParam()}`).then(r => r.json());
   const loading = document.getElementById("fin-loading");
   const wrap    = document.getElementById("fin-wrap");
   const tbody   = document.getElementById("fin-body");
-
-  if (!data.length) { loading.textContent = "Sin datos."; return; }
+  if (!data.length) { loading.textContent = "Sin datos."; wrap.style.display = "none"; loading.style.display = "block"; return; }
 
   tbody.innerHTML = data.map(j => `
     <tr title="${j.nombreCompleto || j.username}">
-      <td class="font-semibold">${j.username}</td>
-      <td class="text-center text-muted">${j.finalesJugadas}</td>
-      <td class="text-center" style="color:#86efac;">${j.finalesGanadas}</td>
-      <td class="text-right ${winColor(j.winRate)}">${j.winRate}%</td>
+      <td class="cell-name">${j.username}</td>
+      <td class="num muted" style="text-align:center;">${j.finalesJugadas}</td>
+      <td class="num" style="text-align:center; color:var(--green);">${j.finalesGanadas}</td>
+      <td class="num ${winColor(j.winRate)}" style="text-align:right;">${j.winRate}%</td>
     </tr>`).join("");
 
-  loading.classList.add("hidden");
-  wrap.classList.remove("hidden");
+  loading.style.display = "none";
+  wrap.style.display = "block";
 }
 
 // ── PAREJAS ──
 async function loadParejas() {
-  const data = await fetch("/api/stats/parejas").then(r => r.json());
+  const data = await fetch(`/api/stats/parejas${modParam()}`).then(r => r.json());
   const loading = document.getElementById("par-loading");
   const wrap    = document.getElementById("par-wrap");
   const tbody   = document.getElementById("par-body");
-
-  if (!data.length) { loading.textContent = "Sin datos."; return; }
+  if (!data.length) { loading.textContent = "Sin parejas en esta modalidad."; wrap.style.display = "none"; loading.style.display = "block"; return; }
 
   tbody.innerHTML = data.map(p => {
     const usernames = p.usernames || p.nombres || [];
@@ -288,42 +352,71 @@ async function loadParejas() {
     const tooltip = ncs.length ? ncs.join(" + ") : usernames.join(" + ");
     return `
     <tr title="${tooltip}">
-      <td class="font-semibold">${usernames.join(" + ")}</td>
-      <td class="text-center text-muted">${p.partidos}</td>
-      <td class="text-center" style="color:#86efac;">${p.victorias}</td>
-      <td class="text-right ${winColor(p.winRate)}">${p.winRate}%</td>
+      <td class="cell-name">${usernames.join(" + ")}</td>
+      <td class="num muted" style="text-align:center;">${p.partidos}</td>
+      <td class="num" style="text-align:center; color:var(--green);">${p.victorias}</td>
+      <td class="num ${winColor(p.winRate)}" style="text-align:right;">${p.winRate}%</td>
     </tr>`;
   }).join("");
 
-  loading.classList.add("hidden");
-  wrap.classList.remove("hidden");
+  loading.style.display = "none";
+  wrap.style.display = "block";
 }
 
-// ── PEOR ENEMIGO ──
+// ── PEOR ENEMIGO (clickable, abre H2H) ──
 async function loadPeorEnemigo() {
-  const data = await fetch("/api/stats/peor-enemigo").then(r => r.json());
+  const data = await fetch(`/api/stats/peor-enemigo${modParam()}`).then(r => r.json());
   const loading = document.getElementById("pe-loading");
   const wrap    = document.getElementById("pe-wrap");
   const empty   = document.getElementById("pe-empty");
   const tbody   = document.getElementById("pe-body");
 
-  loading.classList.add("hidden");
+  loading.style.display = "none";
 
-  if (!data.length) { empty.classList.remove("hidden"); return; }
+  if (!data.length) { empty.style.display = "block"; wrap.style.display = "none"; return; }
+  empty.style.display = "none";
 
   tbody.innerHTML = data.map(p => `
-    <tr title="${p.cazadorNombreCompleto || p.cazadorUsername} vs ${p.victimaNombreCompleto || p.victimaUsername}">
-      <td class="font-semibold">${p.cazadorUsername}</td>
-      <td class="text-crimson font-semibold text-center">⚔</td>
-      <td class="text-muted">${p.victimaUsername}</td>
-      <td class="text-center text-muted">${p.victorias}/${p.partidos}</td>
-      <td class="text-right wr-high">${p.winRate}%</td>
+    <tr class="clickable" onclick="abrirH2H('${p.cazadorId}', '${p.victimaId}')" title="Ver historial vs ${p.victimaUsername}">
+      <td class="cell-name">${p.cazadorUsername}</td>
+      <td class="heavy red" style="text-align:center;">⚔</td>
+      <td class="muted">${p.victimaUsername}</td>
+      <td class="num muted" style="text-align:center;">${p.victorias}/${p.partidos}</td>
+      <td class="num wr-high" style="text-align:right;">${p.winRate}%</td>
+      <td class="row-arrow">›</td>
     </tr>`).join("");
 
-  wrap.classList.remove("hidden");
+  wrap.style.display = "block";
 }
 
-// ── TORNEOS ──
+// ── RACHAS ──
+async function loadRachas() {
+  const data = await fetch(`/api/stats/rachas${modParam()}`).then(r => r.json());
+  const loading = document.getElementById("rac-loading");
+  const wrap    = document.getElementById("rac-wrap");
+  const empty   = document.getElementById("rac-empty");
+  const tbody   = document.getElementById("rac-body");
+
+  loading.style.display = "none";
+  if (!data.length) { empty.style.display = "block"; wrap.style.display = "none"; return; }
+  empty.style.display = "none";
+
+  tbody.innerHTML = data.map(r => {
+    const cls = r.actualGano ? "win" : "lose";
+    const sign = r.actualGano ? "W" : "L";
+    return `<tr title="${r.nombreCompleto || r.username} · ${r.totalPartidos} partidos">
+      <td class="cell-name">${r.username}</td>
+      <td style="text-align:center;"><span class="racha ${cls}">${r.actualLen} ${sign}</span></td>
+      <td class="num" style="text-align:right; font-size:0.75rem;">
+        <span class="green">${r.maxWin}W</span> / <span class="red">${r.maxLose}L</span>
+      </td>
+    </tr>`;
+  }).join("");
+
+  wrap.style.display = "block";
+}
+
+// ── TORNEOS (no se filtran por modalidad — torneos enteros) ──
 async function loadTorneos() {
   const data = await fetch("/api/stats/torneos").then(r => r.json());
   const loading = document.getElementById("torneos-loading");
@@ -338,33 +431,34 @@ async function loadTorneos() {
     const ganadores = usernames.filter(Boolean).join(" + ") || "—";
     const tooltip = ncs.filter(Boolean).join(" + ") || ganadores;
     return `
-      <div class="card p-4 space-y-3">
-        <div class="flex items-start justify-between gap-2">
-          <h3 style="font-size:0.85rem; line-height:1.3;">${t.nombre}</h3>
-          <span class="text-xs text-muted whitespace-nowrap italic">${fecha}</span>
+      <div class="card" style="padding:0;">
+        <div class="card-header yellow">
+          <span style="font-size:0.7rem; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.nombre}</span>
+          <span class="meta">${fecha}</span>
         </div>
-        <div class="flex gap-2 flex-wrap">
-          ${badge(FORMATO_LABEL[t.formato] ?? t.formato, FORMATO_CLASS[t.formato] ?? "")}
-          ${badge(t.modalidad, MOD_CLASS[t.modalidad] ?? "")}
-        </div>
-        <div style="border-top:1px solid var(--gold-faint); padding-top:0.5rem;">
-          <p class="text-xs text-muted" style="letter-spacing:0.1em; text-transform:uppercase; font-family:var(--serif);">Ganador</p>
-          <p class="font-semibold text-gold-bright" title="${tooltip}">${ganadores}</p>
+        <div class="card-body padded" style="padding:0.85rem;">
+          <div style="margin-bottom:0.5rem; display:flex; gap:0.35rem; flex-wrap:wrap;">
+            ${badge(FORMATO_LABEL[t.formato] ?? t.formato, FORMATO_CLASS[t.formato] ?? "")}
+            ${badge(t.modalidad, MOD_CLASS[t.modalidad] ?? "")}
+          </div>
+          <div style="border-top:2px solid var(--black); padding-top:0.5rem; margin-top:0.5rem;">
+            <p class="upper heavy" style="font-size:0.62rem; margin:0 0 0.2rem 0; letter-spacing:0.08em;">Ganador</p>
+            <p class="bold" title="${tooltip}" style="margin:0;">${ganadores}</p>
+          </div>
         </div>
       </div>`;
   }).join("");
 
-  loading.classList.add("hidden");
-  grid.classList.remove("hidden");
+  loading.style.display = "none";
+  grid.style.display = "grid";
 }
 
-// ── PARTIDOS ──
+// ── PARTIDOS RECIENTES ──
 async function loadPartidos() {
-  const data = await fetch("/api/stats/partidos").then(r => r.json());
+  const data = await fetch(`/api/stats/partidos${modParam()}`).then(r => r.json());
   const loading = document.getElementById("partidos-loading");
   const list    = document.getElementById("partidos-list");
-
-  if (!data.length) { loading.textContent = "Sin partidos todavia."; return; }
+  if (!data.length) { loading.textContent = "Sin partidos en esta modalidad."; list.style.display = "none"; loading.style.display = "block"; return; }
 
   list.innerHTML = data.map(p => {
     const fecha = new Date(p.fecha).toLocaleDateString("es-AR", { day:"2-digit", month:"short", year:"numeric" });
@@ -385,33 +479,137 @@ async function loadPartidos() {
     const tipG = ganNcs.length ? ganNcs.join(" + ") : ganador;
 
     return `
-      <div class="px-4 py-3" style="border-bottom: 1px solid rgba(201, 164, 90, 0.07);">
-        <div class="flex items-center justify-between mb-1">
-          <div class="flex items-center gap-2">
+      <div style="padding:0.7rem 1rem; border-bottom: 1px solid var(--line-soft);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.3rem; gap:0.5rem; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
             ${badge(tipo, tipoCls)}
-            ${p.ronda && p.ronda !== "partido_suelto" ? `<span class="text-xs text-muted italic">${p.ronda}${torneoLabel}</span>` : ""}
+            ${p.ronda && p.ronda !== "partido_suelto" ? `<span class="muted upper" style="font-size:0.68rem; letter-spacing:0.06em;">${p.ronda}${torneoLabel}</span>` : ""}
           </div>
-          <span class="text-xs text-muted italic">${fecha}</span>
+          <span class="muted upper" style="font-size:0.68rem; letter-spacing:0.06em;">${fecha}</span>
         </div>
-        <div class="flex items-center gap-2 text-sm">
-          <span class="${ganador === eqA ? 'text-gold-bright font-semibold' : 'text-cream'}" title="${tipA}">${eqA}</span>
-          <span class="text-muted italic">vs</span>
-          <span class="${ganador === eqB ? 'text-gold-bright font-semibold' : 'text-cream'}" title="${tipB}">${eqB}</span>
+        <div style="font-size:0.92rem; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+          <span class="${ganador === eqA ? 'heavy green' : ''}" title="${tipA}">${eqA}</span>
+          <span class="muted upper" style="font-size:0.7rem;">vs</span>
+          <span class="${ganador === eqB ? 'heavy green' : ''}" title="${tipB}">${eqB}</span>
         </div>
-        <div class="text-xs text-gold mt-1" title="${tipG}">Ganador: <span class="text-gold-bright font-semibold">${ganador}</span></div>
+        <div class="upper" style="font-size:0.7rem; margin-top:0.2rem; letter-spacing:0.06em; color:var(--text-muted);" title="${tipG}">
+          Gano: <span class="heavy" style="color:var(--text);">${ganador}</span>
+        </div>
       </div>`;
   }).join("");
 
-  loading.classList.add("hidden");
-  list.classList.remove("hidden");
+  loading.style.display = "none";
+  list.style.display = "block";
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// MODAL HEAD-TO-HEAD
+// ══════════════════════════════════════════════════════════════════════════════
+async function abrirH2H(idA, idB) {
+  const modal = document.getElementById("modal-h2h");
+  const cont  = document.getElementById("h2h-content");
+  cont.innerHTML = '<p class="muted italic">Cargando...</p>';
+  modal.classList.add("open");
+
+  try {
+    const data = await fetch(`/api/stats/h2h?a=${idA}&b=${idB}`).then(r => r.json());
+    cont.innerHTML = renderH2H(data);
+  } catch (e) {
+    cont.innerHTML = `<p class="red">Error: ${e.message}</p>`;
+  }
+}
+
+function cerrarH2H() {
+  document.getElementById("modal-h2h").classList.remove("open");
+}
+
+function renderH2H(data) {
+  if (!data || !data.partidos) return '<p class="red">Sin datos.</p>';
+  const { a, b, total, partidos } = data;
+  const aPct = total ? Math.round(a.wins / total * 100) : 0;
+  const bPct = total ? 100 - aPct : 0;
+
+  const filas = partidos.map(p => {
+    const fec = new Date(p.fecha).toLocaleDateString("es-AR", { day:"2-digit", month:"short", year:"numeric" });
+    const eqA = (p.equipoAUsernames || []).join(" + ");
+    const eqB = (p.equipoBUsernames || []).join(" + ");
+    const aGano = p.aGano;
+    const torneo = p.torneoNombre ? ` <span class="muted">· ${p.torneoNombre}</span>` : "";
+    return `<tr>
+      <td class="muted upper" style="font-size:0.7rem;">${fec}</td>
+      <td>${badge(p.ronda || p.tipoPartido, p.tipoPartido === "final" ? "badge-final" : (p.tipoPartido === "torneo" ? "badge-torneo" : "badge-suelto"))}${torneo}</td>
+      <td>
+        <div><span class="${aGano ? 'heavy green' : ''}">${eqA}</span></div>
+        <div class="muted upper" style="font-size:0.65rem;">vs</div>
+        <div><span class="${!aGano ? 'heavy green' : ''}">${eqB}</span></div>
+      </td>
+      <td class="upper heavy" style="font-size:0.72rem; text-align:right; color:${aGano ? 'var(--blue)' : 'var(--red)'};">
+        ${aGano ? a.username : b.username}
+      </td>
+    </tr>`;
+  }).join("");
+
+  return `
+    <h2 style="margin-bottom:0.4rem;">Head to head</h2>
+    <p class="muted upper" style="font-size:0.7rem; margin:0 0 1rem 0; letter-spacing:0.08em;">Partidos en equipos opuestos</p>
+
+    <div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:1rem; align-items:center; padding:1rem; border:3px solid var(--black); background:var(--bg-soft); margin-bottom:1rem;">
+      <div style="text-align:right;">
+        <p class="heavy" style="font-size:1.3rem; margin:0; color:var(--blue);">${a.username}</p>
+        <p class="muted" style="font-size:0.78rem; margin:0;">${a.nombreCompleto || ''}</p>
+        <p class="heavy" style="font-size:2.2rem; margin:0.2rem 0 0; color:var(--blue);">${a.wins}</p>
+        <p class="muted upper" style="font-size:0.6rem; margin:0; letter-spacing:0.08em;">${aPct}% del total</p>
+      </div>
+      <div class="heavy" style="font-size:1.6rem;">VS</div>
+      <div>
+        <p class="heavy" style="font-size:1.3rem; margin:0; color:var(--red);">${b.username}</p>
+        <p class="muted" style="font-size:0.78rem; margin:0;">${b.nombreCompleto || ''}</p>
+        <p class="heavy" style="font-size:2.2rem; margin:0.2rem 0 0; color:var(--red);">${b.wins}</p>
+        <p class="muted upper" style="font-size:0.6rem; margin:0; letter-spacing:0.08em;">${bPct}% del total</p>
+      </div>
+    </div>
+
+    <p class="upper heavy" style="font-size:0.7rem; letter-spacing:0.08em; margin:0 0 0.5rem 0;">Historial (${total})</p>
+    <table class="classic">
+      <tbody>${filas}</tbody>
+    </table>`;
+}
+
+// Cerrar modal al hacer click afuera
+document.getElementById("modal-h2h").addEventListener("click", e => {
+  if (e.target.id === "modal-h2h") cerrarH2H();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") cerrarH2H();
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MODALIDAD TABS
+// ══════════════════════════════════════════════════════════════════════════════
+function setModalidad(mod) {
+  currentMod = mod;
+  document.querySelectorAll(".tab-mod").forEach(t => {
+    t.classList.toggle("active", t.dataset.mod === mod);
+  });
+  // Recargar todo lo que depende de modalidad
+  Promise.all([
+    loadWinRate(),
+    loadFinales(),
+    loadParejas(),
+    loadPeorEnemigo(),
+    loadRachas(),
+    loadPartidos(),
+  ]);
+}
+
+// Carga inicial
 Promise.all([
   loadElo(),
   loadWinRate(),
   loadFinales(),
   loadParejas(),
   loadPeorEnemigo(),
+  loadRachas(),
   loadTorneos(),
   loadPartidos(),
 ]);

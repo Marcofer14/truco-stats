@@ -6,66 +6,66 @@
   <title>Admin · Truco Stats</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
   <header class="hero">
-    <div class="max-w-4xl mx-auto flex items-center gap-4">
-      <a href="/" class="text-muted" style="font-size:0.85rem;">&larr; Volver</a>
-      <h1 style="font-size:1.3rem;">Panel de administracion</h1>
+    <div style="max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 1.25rem;">
+      <a href="/" class="btn btn-ghost btn-sm no-underline">&larr; Volver</a>
+      <h1 style="font-size: 1.6rem;">Admin</h1>
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+  <main style="max-width: 1100px; margin: 0 auto; padding: 1.75rem 1.25rem;">
 
     <!-- LOGIN -->
     <div id="login-section">
-      <div class="card p-6 max-w-sm mx-auto space-y-4">
-        <h2 class="text-center">Acceso admin</h2>
-        <p class="ornament" style="margin:0;">◆</p>
-        <input id="adminPass" class="input" type="password" placeholder="Contrasena" />
-        <button onclick="login()" class="btn-gold w-full">Entrar</button>
-        <p id="login-error" class="text-crimson text-center hidden italic" style="font-size:0.85rem;">Contrasena incorrecta.</p>
+      <div class="card" style="max-width: 380px; margin: 3rem auto 0;">
+        <div class="card-header red">Acceso admin</div>
+        <div class="card-body padded" style="display:flex; flex-direction:column; gap:0.85rem;">
+          <input id="adminPass" class="input" type="password" placeholder="Contrasena" />
+          <button onclick="login()" class="btn btn-red" style="width:100%;">Entrar</button>
+          <p id="login-error" class="red bold" style="text-align:center; font-size:0.85rem; display:none; margin:0;">Contrasena incorrecta.</p>
+        </div>
       </div>
     </div>
 
     <!-- PANEL -->
-    <div id="admin-section" class="hidden space-y-6">
+    <div id="admin-section" style="display:none;">
 
       <!-- TABS -->
-      <div class="flex gap-1" style="border-bottom: 1px solid var(--gold-faint);">
-        <div class="tab active" id="tab-pendientes" onclick="switchAdminTab('pendientes')">Pendientes</div>
-        <div class="tab" id="tab-jugadores" onclick="switchAdminTab('jugadores')">Jugadores</div>
+      <div class="tabs-mod" style="margin-bottom: 1.5rem;">
+        <div class="tab-mod active" id="tab-pendientes" onclick="switchAdminTab('pendientes')">Pendientes</div>
+        <div class="tab-mod" id="tab-jugadores" onclick="switchAdminTab('jugadores')">Jugadores</div>
       </div>
 
       <!-- ── PENDIENTES ── -->
-      <div id="vista-pendientes" class="space-y-6">
-        <div class="flex items-center justify-between">
+      <div id="vista-pendientes">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 1rem; flex-wrap:wrap; gap:0.75rem;">
           <h2>Pendientes de aprobacion</h2>
-          <div class="flex gap-2">
-            <button onclick="limpiarProcesados()" class="btn-ghost">Limpiar procesados</button>
-            <button onclick="cargarPendientes()" class="btn-ghost">Actualizar</button>
+          <div style="display:flex; gap:0.5rem;">
+            <button onclick="limpiarProcesados()" class="btn btn-ghost btn-sm">Limpiar procesados</button>
+            <button onclick="cargarPendientes()" class="btn btn-yellow btn-sm">Actualizar</button>
           </div>
         </div>
 
-        <div id="pendientes-loading" class="card p-8 text-center text-muted italic">Cargando...</div>
-        <div id="pendientes-empty"  class="card p-8 text-center text-muted italic hidden">
+        <div id="pendientes-loading" class="card card-body padded muted italic" style="text-align:center;">Cargando...</div>
+        <div id="pendientes-empty" class="card card-body padded muted italic" style="text-align:center; display:none;">
           No hay pendientes.
         </div>
-        <div id="pendientes-list" class="space-y-6 hidden"></div>
+        <div id="pendientes-list" style="display:none; display:flex; flex-direction:column; gap:1.25rem;"></div>
       </div>
 
       <!-- ── JUGADORES ── -->
-      <div id="vista-jugadores" class="hidden space-y-6">
-        <div class="flex items-center justify-between">
+      <div id="vista-jugadores" style="display:none;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 1rem;">
           <h2>Jugadores</h2>
-          <button onclick="cargarJugadores()" class="btn-ghost">Actualizar</button>
+          <button onclick="cargarJugadores()" class="btn btn-yellow btn-sm">Actualizar</button>
         </div>
-        <div id="jugadores-loading" class="card p-8 text-center text-muted italic">Cargando...</div>
-        <div id="jugadores-list" class="card hidden"></div>
+        <div id="jugadores-loading" class="card card-body padded muted italic" style="text-align:center;">Cargando...</div>
+        <div id="jugadores-list" class="card" style="display:none;"></div>
       </div>
 
     </div>
@@ -73,26 +73,27 @@
 
   <!-- MODAL: editar jugador -->
   <div id="modal-editar" class="modal-overlay">
-    <div class="modal-card space-y-4">
-      <h3 style="margin:0;">Editar jugador</h3>
-      <p class="ornament" style="margin:0;">◆</p>
-      <div>
-        <label class="text-muted italic" style="font-size:0.85rem;">Username</label>
-        <input id="edit-username" class="input mt-1" type="text" maxlength="20" />
-        <p class="text-muted italic" style="font-size:0.75rem; margin-top:0.25rem;">3-20 caracteres: letras, numeros y "_"</p>
-        <p id="edit-username-error" class="text-crimson hidden" style="font-size:0.8rem; margin-top:0.25rem;"></p>
-      </div>
-      <div>
-        <label class="text-muted italic" style="font-size:0.85rem;">Nombre completo</label>
-        <input id="edit-nombre" class="input mt-1" type="text" maxlength="60" />
-        <p id="edit-nombre-error" class="text-crimson hidden" style="font-size:0.8rem; margin-top:0.25rem;"></p>
-      </div>
-      <label class="flex items-center gap-2 text-cream" style="font-size:0.9rem;">
-        <input id="edit-activo" type="checkbox" /> Activo
-      </label>
-      <div class="flex gap-3 pt-2">
-        <button onclick="cerrarEdicion()" class="btn-ghost flex-1">Cancelar</button>
-        <button onclick="guardarEdicion()" class="btn-gold flex-1">Guardar</button>
+    <div class="modal-card">
+      <h2 style="margin-bottom:0.75rem;">Editar jugador</h2>
+      <div style="display:flex; flex-direction:column; gap:1rem;">
+        <div>
+          <label class="field-label">Username</label>
+          <input id="edit-username" class="input" type="text" maxlength="20" />
+          <p class="muted" style="font-size:0.75rem; margin:0.3rem 0 0 0;">3-20 caracteres: letras, numeros y "_"</p>
+          <p id="edit-username-error" class="red bold" style="font-size:0.8rem; margin:0.3rem 0 0 0; display:none;"></p>
+        </div>
+        <div>
+          <label class="field-label">Nombre completo</label>
+          <input id="edit-nombre" class="input" type="text" maxlength="60" />
+          <p id="edit-nombre-error" class="red bold" style="font-size:0.8rem; margin:0.3rem 0 0 0; display:none;"></p>
+        </div>
+        <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.92rem;">
+          <input id="edit-activo" type="checkbox" /> Activo
+        </label>
+        <div style="display:flex; gap:0.75rem; margin-top:0.5rem;">
+          <button onclick="cerrarEdicion()" class="btn btn-ghost" style="flex:1;">Cancelar</button>
+          <button onclick="guardarEdicion()" class="btn btn-green" style="flex:1;">Guardar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -111,14 +112,14 @@ async function login() {
   });
 
   if (res.status === 401) {
-    err.classList.remove("hidden");
+    err.style.display = "block";
     return;
   }
 
   adminPassword = pass;
-  err.classList.add("hidden");
-  document.getElementById("login-section").classList.add("hidden");
-  document.getElementById("admin-section").classList.remove("hidden");
+  err.style.display = "none";
+  document.getElementById("login-section").style.display = "none";
+  document.getElementById("admin-section").style.display = "block";
   const data = await res.json();
   nombreMap = data.nombreMap || {};
   renderPendientes(data.pendientes || data);
@@ -128,11 +129,10 @@ document.getElementById("adminPass").addEventListener("keydown", e => {
   if (e.key === "Enter") login();
 });
 
-// ── CARGAR PENDIENTES ──
 async function cargarPendientes() {
-  document.getElementById("pendientes-loading").classList.remove("hidden");
-  document.getElementById("pendientes-list").classList.add("hidden");
-  document.getElementById("pendientes-empty").classList.add("hidden");
+  document.getElementById("pendientes-loading").style.display = "block";
+  document.getElementById("pendientes-list").style.display = "none";
+  document.getElementById("pendientes-empty").style.display = "none";
 
   const res = await fetch("/api/admin/pendientes", {
     headers: { "x-admin-password": adminPassword }
@@ -152,10 +152,10 @@ async function limpiarProcesados() {
 }
 
 function renderPendientes(data) {
-  document.getElementById("pendientes-loading").classList.add("hidden");
+  document.getElementById("pendientes-loading").style.display = "none";
 
   if (!data || !data.length) {
-    document.getElementById("pendientes-empty").classList.remove("hidden");
+    document.getElementById("pendientes-empty").style.display = "block";
     return;
   }
 
@@ -164,26 +164,25 @@ function renderPendientes(data) {
     if (p.tipo === "torneo") return renderTarjetaTorneo(p);
     return renderTarjetaSuelto(p);
   }).join("");
-  list.classList.remove("hidden");
+  list.style.display = "flex";
 }
 
-// Helper: resolver display de un slot
 function slotNombre(slot) {
   if (!slot) return "?";
   if (typeof slot === "string" && slot.startsWith("NEW:")) {
     const payload = slot.slice(4);
     if (payload.includes("|")) {
       const [u, nc] = payload.split("|");
-      return `${u} <span class="text-muted italic" style="font-size:0.78rem;">(${nc}, nuevo)</span>`;
+      return `${u} <span class="muted" style="font-size:0.78rem;">(${nc}, nuevo)</span>`;
     }
-    return `${payload} <span class="text-muted italic" style="font-size:0.78rem;">(nuevo)</span>`;
+    return `${payload} <span class="muted" style="font-size:0.78rem;">(nuevo)</span>`;
   }
   const id = typeof slot === "string" ? slot : slot.toString();
   const info = nombreMap[id];
   if (!info) return id.substring(0, 8) + "...";
   if (typeof info === "string") return info;
   return info.username + (info.nombreCompleto && info.nombreCompleto !== info.username
-    ? ` <span class="text-muted italic" style="font-size:0.78rem;">(${info.nombreCompleto})</span>`
+    ? ` <span class="muted" style="font-size:0.78rem;">(${info.nombreCompleto})</span>`
     : "");
 }
 
@@ -192,7 +191,6 @@ function equipoNombre(slots) {
   return slots.map(slotNombre).join(" + ");
 }
 
-// ── TARJETA TORNEO ──
 function renderTarjetaTorneo(p) {
   const { _id, torneo, partidos, enviadoPor, fechaEnvio } = p;
   const fecha = new Date(fechaEnvio).toLocaleString("es-AR");
@@ -201,8 +199,8 @@ function renderTarjetaTorneo(p) {
     const nombres = equipoNombre(eq);
     const isGanador = torneo.ganador && torneo.ganador.length > 0 &&
       torneo.ganador.every(g => eq.includes(g));
-    return `<div class="${isGanador ? 'text-gold-bright font-semibold' : 'text-cream'}" style="font-size:0.92rem; padding:0.15rem 0;">
-      ${isGanador ? '&#x1F3C6; ' : ''}${nombres}
+    return `<div class="${isGanador ? 'heavy yellow' : ''}" style="font-size:0.92rem; padding:0.2rem 0;">
+      ${isGanador ? '&#x1F3C6; ' : '· '}${nombres}
     </div>`;
   }).join("");
 
@@ -214,56 +212,55 @@ function renderTarjetaTorneo(p) {
     const ganadorNombres = partido.equipoGanador
       ? equipoNombre(partido.equipoGanador)
       : (partido.ganador === "A" ? eqANombres : eqBNombres);
-    return `<tr style="border-bottom:1px solid rgba(201, 164, 90, 0.08);">
-      <td class="py-2 pr-3 text-muted italic" style="font-size:0.85rem;">${partido.ronda}</td>
-      <td class="py-2" style="font-size:0.9rem;">${eqANombres} <span class="text-muted italic">vs</span> ${eqBNombres}</td>
-      <td class="py-2 text-gold-bright font-semibold pl-3" style="font-size:0.9rem;">Gano: ${ganadorNombres}</td>
+    return `<tr style="border-bottom: 1px solid var(--line-soft);">
+      <td class="muted upper" style="font-size:0.7rem; letter-spacing:0.06em; padding: 0.45rem 0.6rem 0.45rem 0;">${partido.ronda}</td>
+      <td style="padding: 0.45rem 0.6rem; font-size:0.88rem;">${eqANombres} <span class="muted upper" style="font-size:0.65rem;">vs</span> ${eqBNombres}</td>
+      <td class="heavy" style="padding: 0.45rem 0; font-size:0.88rem; color:var(--green);">Gano: ${ganadorNombres}</td>
     </tr>`;
   }).join("");
 
   return `
     <div class="card" id="card-${_id}">
-      <div class="px-5 py-3 flex items-center justify-between" style="background:rgba(201, 164, 90, 0.06); border-bottom: 1px solid var(--gold-faint);">
-        <div class="flex items-center gap-3">
+      <div class="card-header yellow" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
           <span class="badge badge-torneo">Torneo</span>
-          <span class="font-serif text-gold-bright" style="font-size:1rem;">${torneo.nombre}</span>
-          <span class="text-muted italic" style="font-size:0.8rem;">${torneo.formato} · ${torneo.modalidad}</span>
+          <span style="font-family:'Archivo Black',sans-serif; font-size:0.9rem;">${torneo.nombre}</span>
+          <span style="font-size:0.7rem; opacity:0.85;">${torneo.formato} · ${torneo.modalidad}</span>
         </div>
-        <div class="text-right text-muted" style="font-size:0.75rem;">
-          <p>Enviado por <b class="text-cream">${enviadoPor}</b></p>
-          <p class="italic">${fecha}</p>
+        <div style="text-align:right; font-size:0.7rem; opacity:0.85;">
+          <p style="margin:0;">Enviado por <b>${enviadoPor}</b></p>
+          <p style="margin:0;">${fecha}</p>
         </div>
       </div>
 
-      <div class="p-5 space-y-4">
+      <div class="card-body padded" style="display:flex; flex-direction:column; gap:1rem;">
         <div>
-          <p class="font-serif text-gold" style="font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; margin-bottom:0.5rem;">Equipos</p>
-          <div style="background:var(--bg-input); padding:0.75rem; border:1px solid var(--gold-faint);">
+          <p class="upper heavy" style="font-size:0.7rem; letter-spacing:0.08em; margin:0 0 0.5rem 0;">Equipos</p>
+          <div style="background: var(--bg-soft); padding: 0.75rem; border: 2px solid var(--black);">
             ${equiposHtml}
           </div>
         </div>
 
         <div>
-          <p class="font-serif text-gold" style="font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; margin-bottom:0.4rem;">Ganador del torneo</p>
-          <p class="text-gold-bright font-semibold">${ganadorNombres}</p>
+          <p class="upper heavy" style="font-size:0.7rem; letter-spacing:0.08em; margin:0 0 0.4rem 0;">Ganador del torneo</p>
+          <p class="heavy" style="margin:0; font-size:1.05rem; color:var(--green);">&#x1F3C6; ${ganadorNombres}</p>
         </div>
 
         <div>
-          <p class="font-serif text-gold" style="font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; margin-bottom:0.4rem;">Partidos (${partidos.length})</p>
-          <table class="w-full">
+          <p class="upper heavy" style="font-size:0.7rem; letter-spacing:0.08em; margin:0 0 0.4rem 0;">Partidos (${partidos.length})</p>
+          <table style="width:100%;">
             <tbody>${partidosHtml}</tbody>
           </table>
         </div>
 
-        <div class="flex gap-3 pt-3" style="border-top:1px solid var(--gold-faint);">
-          <button onclick="aprobar('${_id}')" class="btn-green flex-1">Aprobar y publicar</button>
-          <button onclick="rechazar('${_id}')" class="btn-red flex-1">Rechazar</button>
+        <div style="display:flex; gap:0.75rem; padding-top:1rem; border-top: 3px solid var(--black);">
+          <button onclick="aprobar('${_id}')" class="btn btn-green" style="flex:1;">Aprobar y publicar</button>
+          <button onclick="rechazar('${_id}')" class="btn btn-red" style="flex:1;">Rechazar</button>
         </div>
       </div>
     </div>`;
 }
 
-// ── TARJETA PARTIDO SUELTO ──
 function renderTarjetaSuelto(p) {
   const { _id, enviadoPor, fechaEnvio, fecha, modalidad } = p;
   const fechaEnvioStr = new Date(fechaEnvio).toLocaleString("es-AR");
@@ -277,45 +274,42 @@ function renderTarjetaSuelto(p) {
 
   return `
     <div class="card" id="card-${_id}">
-      <div class="px-5 py-3 flex items-center justify-between" style="background:rgba(201, 164, 90, 0.06); border-bottom: 1px solid var(--gold-faint);">
-        <div class="flex items-center gap-3">
+      <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
           <span class="badge badge-suelto">Partido suelto</span>
-          <span class="text-muted italic" style="font-size:0.8rem;">${modalidad} · ${fechaPartido}</span>
+          <span style="font-size:0.78rem; opacity:0.85;">${modalidad} · ${fechaPartido}</span>
         </div>
-        <div class="text-right text-muted" style="font-size:0.75rem;">
-          <p>Enviado por <b class="text-cream">${enviadoPor}</b></p>
-          <p class="italic">${fechaEnvioStr}</p>
+        <div style="text-align:right; font-size:0.7rem; opacity:0.85;">
+          <p style="margin:0;">Enviado por <b>${enviadoPor}</b></p>
+          <p style="margin:0;">${fechaEnvioStr}</p>
         </div>
       </div>
 
-      <div class="p-5 space-y-4">
-        <div class="grid grid-cols-3 gap-4 text-center items-center">
+      <div class="card-body padded" style="display:flex; flex-direction:column; gap:1rem;">
+        <div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:1rem; align-items:center; text-align:center;">
           <div>
-            <p class="font-serif text-gold" style="font-size:0.65rem; letter-spacing:0.16em; text-transform:uppercase; margin-bottom:0.3rem;">Equipo 1</p>
-            <p class="text-cream font-semibold" style="font-size:0.95rem;">${eqANombres}</p>
+            <p class="upper heavy" style="font-size:0.62rem; letter-spacing:0.08em; margin:0 0 0.3rem 0;">Equipo 1</p>
+            <p style="margin:0; font-weight:600;">${eqANombres}</p>
           </div>
+          <div class="heavy" style="font-size:1.3rem;">VS</div>
           <div>
-            <span class="text-muted italic" style="font-size:1.1rem;">vs</span>
-          </div>
-          <div>
-            <p class="font-serif text-gold" style="font-size:0.65rem; letter-spacing:0.16em; text-transform:uppercase; margin-bottom:0.3rem;">Equipo 2</p>
-            <p class="text-cream font-semibold" style="font-size:0.95rem;">${eqBNombres}</p>
+            <p class="upper heavy" style="font-size:0.62rem; letter-spacing:0.08em; margin:0 0 0.3rem 0;">Equipo 2</p>
+            <p style="margin:0; font-weight:600;">${eqBNombres}</p>
           </div>
         </div>
-        <div class="text-center">
-          <p class="font-serif text-gold" style="font-size:0.65rem; letter-spacing:0.16em; text-transform:uppercase; margin-bottom:0.3rem;">Ganador</p>
-          <p class="text-gold-bright font-semibold">${ganadorNombres}</p>
+        <div style="text-align:center; padding-top:0.75rem; border-top:2px solid var(--line-soft);">
+          <p class="upper heavy" style="font-size:0.62rem; letter-spacing:0.08em; margin:0 0 0.3rem 0;">Ganador</p>
+          <p class="heavy" style="margin:0; font-size:1.05rem; color:var(--green);">&#x1F3C6; ${ganadorNombres}</p>
         </div>
 
-        <div class="flex gap-3 pt-3" style="border-top:1px solid var(--gold-faint);">
-          <button onclick="aprobar('${_id}')" class="btn-green flex-1">Aprobar y publicar</button>
-          <button onclick="rechazar('${_id}')" class="btn-red flex-1">Rechazar</button>
+        <div style="display:flex; gap:0.75rem; padding-top:1rem; border-top: 3px solid var(--black);">
+          <button onclick="aprobar('${_id}')" class="btn btn-green" style="flex:1;">Aprobar y publicar</button>
+          <button onclick="rechazar('${_id}')" class="btn btn-red" style="flex:1;">Rechazar</button>
         </div>
       </div>
     </div>`;
 }
 
-// ── APROBAR ──
 async function aprobar(id) {
   if (!confirm("Aprobar? Se calculara el ELO y se publicara en las estadisticas.")) return;
 
@@ -333,8 +327,8 @@ async function aprobar(id) {
     document.getElementById(`card-${id}`).remove();
     const restantes = document.querySelectorAll("[id^='card-']").length;
     if (restantes === 0) {
-      document.getElementById("pendientes-list").classList.add("hidden");
-      document.getElementById("pendientes-empty").classList.remove("hidden");
+      document.getElementById("pendientes-list").style.display = "none";
+      document.getElementById("pendientes-empty").style.display = "block";
     }
     alert("Aprobado y publicado.");
   } else {
@@ -344,14 +338,30 @@ async function aprobar(id) {
   }
 }
 
+async function rechazar(id) {
+  if (!confirm("Rechazar este pendiente?")) return;
+
+  await fetch(`/api/admin/rechazar/${id}`, {
+    method:  "POST",
+    headers: { "x-admin-password": adminPassword }
+  });
+
+  document.getElementById(`card-${id}`).remove();
+  const restantes = document.querySelectorAll("[id^='card-']").length;
+  if (restantes === 0) {
+    document.getElementById("pendientes-list").style.display = "none";
+    document.getElementById("pendientes-empty").style.display = "block";
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // TABS
 // ══════════════════════════════════════════════════════════════════════════════
 function switchAdminTab(tab) {
   document.getElementById("tab-pendientes").classList.toggle("active", tab === "pendientes");
   document.getElementById("tab-jugadores").classList.toggle("active", tab === "jugadores");
-  document.getElementById("vista-pendientes").classList.toggle("hidden", tab !== "pendientes");
-  document.getElementById("vista-jugadores").classList.toggle("hidden", tab !== "jugadores");
+  document.getElementById("vista-pendientes").style.display = tab === "pendientes" ? "" : "none";
+  document.getElementById("vista-jugadores").style.display = tab === "jugadores" ? "" : "none";
   if (tab === "jugadores" && !jugadoresCargados) cargarJugadores();
 }
 
@@ -369,9 +379,9 @@ const DIVISIONS = [
 function eloDivision(elo) {
   return DIVISIONS.find(d => elo >= d.min) || DIVISIONS[DIVISIONS.length - 1];
 }
-function divBadge(elo) {
+function divTag(elo) {
   const d = eloDivision(elo);
-  return `<span class="division-badge ${d.cls}">${d.name}</span>`;
+  return `<span class="division-tag"><span class="division-dot ${d.cls}"></span>${d.name}</span>`;
 }
 
 let jugadoresAdmin = [];
@@ -379,8 +389,8 @@ let jugadoresCargados = false;
 let editandoId = null;
 
 async function cargarJugadores() {
-  document.getElementById("jugadores-loading").classList.remove("hidden");
-  document.getElementById("jugadores-list").classList.add("hidden");
+  document.getElementById("jugadores-loading").style.display = "block";
+  document.getElementById("jugadores-list").style.display = "none";
 
   const res = await fetch("/api/admin/jugadores", {
     headers: { "x-admin-password": adminPassword }
@@ -401,13 +411,13 @@ function renderJugadores() {
     const inactivo = j.activo === false;
     return `
       <tr ${inactivo ? 'style="opacity:0.5;"' : ''}>
-        <td class="font-semibold text-cream">${j.username || '(sin username)'}${divBadge(j.eloActual)}</td>
-        <td class="text-muted italic">${j.nombreCompleto || '—'}</td>
-        <td class="text-right elo-num">${j.eloActual}</td>
-        <td class="text-muted italic" style="font-size:0.78rem;">${fec}</td>
+        <td class="cell-name">${j.username || '(sin)'}${divTag(j.eloActual)}</td>
+        <td class="muted">${j.nombreCompleto || '—'}</td>
+        <td class="num elo-num" style="text-align:right;">${j.eloActual}</td>
+        <td class="muted upper" style="font-size:0.68rem; letter-spacing:0.06em;">${fec}</td>
         <td>${inactivo ? '<span class="tag-inactivo">inactivo</span>' : ''}</td>
-        <td class="text-right">
-          <button onclick="abrirEdicion('${j._id}')" class="btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.65rem;">Editar</button>
+        <td style="text-align:right;">
+          <button onclick="abrirEdicion('${j._id}')" class="btn btn-yellow btn-sm">Editar</button>
         </td>
       </tr>`;
   }).join("");
@@ -418,7 +428,7 @@ function renderJugadores() {
           <tr>
             <th>Username</th>
             <th>Nombre completo</th>
-            <th class="text-right">ELO</th>
+            <th style="text-align:right;">ELO</th>
             <th>Registro</th>
             <th></th>
             <th></th>
@@ -427,8 +437,8 @@ function renderJugadores() {
         <tbody>${filas}</tbody>
       </table>
     </div>`;
-  document.getElementById("jugadores-loading").classList.add("hidden");
-  cont.classList.remove("hidden");
+  document.getElementById("jugadores-loading").style.display = "none";
+  cont.style.display = "block";
 }
 
 function abrirEdicion(id) {
@@ -438,8 +448,8 @@ function abrirEdicion(id) {
   document.getElementById("edit-username").value = j.username || "";
   document.getElementById("edit-nombre").value = j.nombreCompleto || "";
   document.getElementById("edit-activo").checked = j.activo !== false;
-  document.getElementById("edit-username-error").classList.add("hidden");
-  document.getElementById("edit-nombre-error").classList.add("hidden");
+  document.getElementById("edit-username-error").style.display = "none";
+  document.getElementById("edit-nombre-error").style.display = "none";
   document.getElementById("modal-editar").classList.add("open");
 }
 
@@ -454,17 +464,17 @@ async function guardarEdicion() {
   const activo = document.getElementById("edit-activo").checked;
   const errU = document.getElementById("edit-username-error");
   const errN = document.getElementById("edit-nombre-error");
-  errU.classList.add("hidden");
-  errN.classList.add("hidden");
+  errU.style.display = "none";
+  errN.style.display = "none";
 
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(u)) {
     errU.textContent = "Username invalido (3-20 chars).";
-    errU.classList.remove("hidden");
+    errU.style.display = "block";
     return;
   }
   if (n.length < 2 || n.length > 60) {
     errN.textContent = "Nombre completo: 2-60 caracteres.";
-    errN.classList.remove("hidden");
+    errN.style.display = "block";
     return;
   }
 
@@ -476,29 +486,19 @@ async function guardarEdicion() {
   const data = await res.json();
   if (!res.ok || !data.ok) {
     errU.textContent = data.error || "Error guardando.";
-    errU.classList.remove("hidden");
+    errU.style.display = "block";
     return;
   }
   cerrarEdicion();
   await cargarJugadores();
 }
 
-// ── RECHAZAR ──
-async function rechazar(id) {
-  if (!confirm("Rechazar este pendiente?")) return;
-
-  await fetch(`/api/admin/rechazar/${id}`, {
-    method:  "POST",
-    headers: { "x-admin-password": adminPassword }
-  });
-
-  document.getElementById(`card-${id}`).remove();
-  const restantes = document.querySelectorAll("[id^='card-']").length;
-  if (restantes === 0) {
-    document.getElementById("pendientes-list").classList.add("hidden");
-    document.getElementById("pendientes-empty").classList.remove("hidden");
-  }
-}
+document.getElementById("modal-editar").addEventListener("click", e => {
+  if (e.target.id === "modal-editar") cerrarEdicion();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") cerrarEdicion();
+});
 </script>
 </body>
 </html>

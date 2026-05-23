@@ -54,6 +54,15 @@ function eloEsperado(a, b) {
   return 1 / (1 + Math.pow(10, (b - a) / 400));
 }
 
+// ── FILTRO DE MODALIDAD ───────────────────────────────────────────────────────
+// Modalidad derivada por tamano de equipo (1=individual, 2=2v2, 3=3v3)
+function modalidadFilter(req) {
+  const m = req.query.modalidad;
+  const sizeMap = { individual: 1, "2v2": 2, "3v3": 3 };
+  if (!m || !sizeMap[m]) return null;
+  return { $expr: { $eq: [{ $size: "$equipoA" }, sizeMap[m]] } };
+}
+
 // ── VALIDACIONES JUGADOR ─────────────────────────────────────────────────────
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 
@@ -213,7 +222,9 @@ app.get("/api/stats/elo", async (req, res) => {
 
 app.get("/api/stats/winrate", async (req, res) => {
   try {
+    const filter = modalidadFilter(req);
     const data = await db.collection("partidos").aggregate([
+      ...(filter ? [{ $match: filter }] : []),
       { $addFields: {
           todos: { $setUnion: ["$equipoA", "$equipoB"] }
       }},
@@ -241,7 +252,9 @@ app.get("/api/stats/winrate", async (req, res) => {
 
 app.get("/api/stats/parejas", async (req, res) => {
   try {
+    const filter = modalidadFilter(req);
     const data = await db.collection("partidos").aggregate([
+      ...(filter ? [{ $match: filter }] : []),
       // Para cada partido, crear dos entradas: una por equipoA y una por equipoB
       { $project: {
           equipos: [
@@ -303,7 +316,9 @@ app.get("/api/stats/torneos", async (req, res) => {
 
 app.get("/api/stats/finales", async (req, res) => {
   try {
+    const filter = modalidadFilter(req);
     const data = await db.collection("partidos").aggregate([
+      ...(filter ? [{ $match: filter }] : []),
       { $match: { ronda: { $in: ["semifinal", "final"] } } },
       { $addFields: {
           todos: { $setUnion: ["$equipoA", "$equipoB"] }
@@ -333,7 +348,9 @@ app.get("/api/stats/finales", async (req, res) => {
 // Pares (A, B) donde A le gana a B >75% en >=2 enfrentamientos
 app.get("/api/stats/peor-enemigo", async (req, res) => {
   try {
+    const filter = modalidadFilter(req);
     const data = await db.collection("partidos").aggregate([
+      ...(filter ? [{ $match: filter }] : []),
       // Determinar equipo perdedor: si todos los ganadores estan en equipoA, perdio B; si no, perdio A
       { $addFields: {
           loserTeam: {
@@ -385,8 +402,10 @@ app.get("/api/stats/peor-enemigo", async (req, res) => {
       { $unwind: "$victima" },
       { $project: {
           _id: 0,
+          cazadorId:              "$cazador._id",
           cazadorUsername:        "$cazador.username",
           cazadorNombreCompleto:  "$cazador.nombreCompleto",
+          victimaId:              "$victima._id",
           victimaUsername:        "$victima.username",
           victimaNombreCompleto:  "$victima.nombreCompleto",
           partidos: 1, victorias: 1, winRate: 1
@@ -401,7 +420,9 @@ app.get("/api/stats/peor-enemigo", async (req, res) => {
 // ── API: PARTIDOS RECIENTES ──────────────────────────────────────────────────
 app.get("/api/stats/partidos", async (req, res) => {
   try {
+    const filter = modalidadFilter(req);
     const data = await db.collection("partidos").aggregate([
+      ...(filter ? [{ $match: filter }] : []),
       { $sort: { fecha: -1 } },
       { $limit: 20 },
       // Resolver nombres de equipoA
@@ -426,6 +447,132 @@ app.get("/api/stats/partidos", async (req, res) => {
       }},
     ]).toArray();
     res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── API: RACHAS ───────────────────────────────────────────────────────────────
+// Para cada jugador devuelve racha actual (length + W/L), max ganadas, max perdidas
+app.get("/api/stats/rachas", async (req, res) => {
+  try {
+    const filter = modalidadFilter(req);
+    const partidos = await db.collection("partidos")
+      .find(filter ? filter : {})
+      .sort({ fecha: 1 })
+      .toArray();
+
+    const porJugador = {};
+    for (const p of partidos) {
+      const ganadores = new Set(p.equipoGanador.map(id => id.toString()));
+      const todos = [...p.equipoA, ...p.equipoB];
+      for (const id of todos) {
+        const k = id.toString();
+        (porJugador[k] ??= []).push({ fecha: p.fecha, gano: ganadores.has(k) });
+      }
+    }
+
+    const ids = Object.keys(porJugador).map(s => new ObjectId(s));
+    const jugadores = await db.collection("jugadores")
+      .find({ _id: { $in: ids } }, { projection: { username: 1, nombreCompleto: 1, eloActual: 1 } })
+      .toArray();
+    const jMap = {};
+    for (const j of jugadores) jMap[j._id.toString()] = j;
+
+    const result = [];
+    for (const [jid, evs] of Object.entries(porJugador)) {
+      evs.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+      const ultimo = evs[evs.length - 1];
+
+      // Racha actual: consecutivos al final con mismo resultado
+      let actualLen = 0;
+      for (let i = evs.length - 1; i >= 0; i--) {
+        if (evs[i].gano === ultimo.gano) actualLen++;
+        else break;
+      }
+
+      // Maxima racha de ganadas y de perdidas en toda la historia
+      let maxWin = 0, maxLose = 0, curWin = 0, curLose = 0;
+      for (const e of evs) {
+        if (e.gano) { curWin++; curLose = 0; if (curWin > maxWin) maxWin = curWin; }
+        else        { curLose++; curWin = 0; if (curLose > maxLose) maxLose = curLose; }
+      }
+
+      const j = jMap[jid];
+      if (!j) continue;
+      result.push({
+        jugadorId: jid,
+        username: j.username,
+        nombreCompleto: j.nombreCompleto,
+        eloActual: j.eloActual,
+        actualLen,
+        actualGano: ultimo.gano,
+        maxWin,
+        maxLose,
+        totalPartidos: evs.length,
+      });
+    }
+
+    // Ordenar: rachas ganadoras primero (largas arriba), luego perdedoras (cortas arriba)
+    result.sort((a, b) => {
+      if (a.actualGano !== b.actualGano) return a.actualGano ? -1 : 1;
+      if (a.actualGano) return b.actualLen - a.actualLen;
+      return a.actualLen - b.actualLen;
+    });
+
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── API: HEAD-TO-HEAD ─────────────────────────────────────────────────────────
+// Historial detallado entre dos jugadores (en equipos opuestos)
+app.get("/api/stats/h2h", async (req, res) => {
+  try {
+    const { a, b } = req.query;
+    if (!a || !b) return res.status(400).json({ error: "Faltan params a, b" });
+    if (!/^[a-f\d]{24}$/i.test(a) || !/^[a-f\d]{24}$/i.test(b))
+      return res.status(400).json({ error: "IDs invalidos" });
+    if (a === b) return res.status(400).json({ error: "a y b deben ser distintos" });
+
+    const idA = new ObjectId(a);
+    const idB = new ObjectId(b);
+
+    const partidos = await db.collection("partidos").aggregate([
+      { $match: {
+          $or: [
+            { equipoA: idA, equipoB: idB },
+            { equipoA: idB, equipoB: idA },
+          ]
+      }},
+      { $sort: { fecha: -1 } },
+      { $lookup: { from: "jugadores", localField: "equipoA", foreignField: "_id", as: "eqAInfo" } },
+      { $lookup: { from: "jugadores", localField: "equipoB", foreignField: "_id", as: "eqBInfo" } },
+      { $lookup: { from: "torneos", localField: "torneoId", foreignField: "_id", as: "torneoInfo" } },
+      { $addFields: {
+          equipoAUsernames: { $map: { input: "$eqAInfo", as: "j", in: "$$j.username" } },
+          equipoBUsernames: { $map: { input: "$eqBInfo", as: "j", in: "$$j.username" } },
+          torneoNombre:     { $arrayElemAt: ["$torneoInfo.nombre", 0] },
+          aGano:            { $in: [idA, "$equipoGanador"] },
+      }},
+      { $project: {
+          fecha: 1, ronda: 1, tipoPartido: 1, torneoNombre: 1,
+          equipoAUsernames: 1, equipoBUsernames: 1, aGano: 1,
+          eloSnapshot: 1,
+      }}
+    ]).toArray();
+
+    const aWins = partidos.filter(p => p.aGano).length;
+    const bWins = partidos.length - aWins;
+
+    const [jugA, jugB] = await Promise.all([
+      db.collection("jugadores").findOne({ _id: idA }, { projection: { username: 1, nombreCompleto: 1, eloActual: 1 } }),
+      db.collection("jugadores").findOne({ _id: idB }, { projection: { username: 1, nombreCompleto: 1, eloActual: 1 } }),
+    ]);
+
+    res.json({
+      a: { id: a, ...jugA, wins: aWins },
+      b: { id: b, ...jugB, wins: bWins },
+      total: partidos.length,
+      partidos,
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
