@@ -11,7 +11,10 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from db.client import close_all, connect_mongo, connect_redis
+from db.indexes import ensure_indexes
+from routes.admin import router as admin_router
 from routes.jugadores import router as jugadores_router
+from routes.pendientes import router as pendientes_router
 from routes.stats import router as stats_router
 
 load_dotenv()
@@ -20,7 +23,8 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Conecta Mongo + Redis al startup, cierra al shutdown."""
-    connect_mongo()
+    db = connect_mongo()
+    ensure_indexes(db)
     connect_redis()  # opcional: si falla, seguimos sin cache
     yield
     close_all()
@@ -43,6 +47,8 @@ def health():
 # ── ROUTERS DE API ───────────────────────────────────────────────────────────
 app.include_router(jugadores_router)
 app.include_router(stats_router)
+app.include_router(pendientes_router)
+app.include_router(admin_router)
 
 
 # ── STATIC FILES (DEBE IR DESPUES DE LOS ROUTERS) ────────────────────────────

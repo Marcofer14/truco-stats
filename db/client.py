@@ -90,6 +90,13 @@ def get_db() -> Database:
     return _db
 
 
+def get_mongo_client() -> MongoClient:
+    """Devuelve el MongoClient (necesario para start_session/with_transaction)."""
+    if _mongo_client is None:
+        raise RuntimeError("MongoDB no esta conectado. Llama connect_mongo() en lifespan.")
+    return _mongo_client
+
+
 def get_redis() -> Optional["Redis"]:
     """Devuelve el cliente Redis si esta disponible, None si no."""
     return _redis_client
