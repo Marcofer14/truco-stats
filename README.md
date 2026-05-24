@@ -139,12 +139,34 @@ Abrí [http://localhost:8000](http://localhost:8000) en el navegador y vas a ver
 
 ```bash
 pip install -r requirements-dev.txt
-pytest
+
+# Tests rapidos (funciones puras, sin DB) — corren en CI
+pytest tests/test_elo.py tests/test_slots.py -v
+
+# Tests de integracion contra Atlas (REQUIERE MONGO_URI)
+# Crea DB temporal truco_db_test_rollback, prueba la transaccion ACID
+# incluyendo el caso de rollback ante excepcion, y limpia al final
+pytest tests/test_transactions_integration.py -v
 ```
 
-Cubre las funciones puras (ELO, parser de slots). Las transacciones se
-validan manualmente: cargar un pendiente desde `/cargar.html`, aprobarlo
-desde `/admin.html`, verificar que la data en Mongo + Redis quedó consistente.
+El test estrella es
+[`test_rollback_no_deja_data_parcial_cuando_falla_mitad_transaccion`](tests/test_transactions_integration.py)
+— inserta jugadores + un pendiente, fuerza una excepción artificial a mitad
+de `procesar_partido_suelto`, y verifica que NADA quedó en la DB. Demuestra
+que `session.with_transaction()` está haciendo rollback correctamente.
+
+## Demo script
+
+Para una presentación en vivo de 2 minutos:
+
+```bash
+python scripts/demo.py                              # contra produccion
+python scripts/demo.py --url http://localhost:8000  # contra local
+python scripts/demo.py --slow                       # pausa entre secciones
+```
+
+Recorre los endpoints en orden, muestra los datos formateados con colores
+ANSI, mide latencia y evidencia el uso de Redis vs fallback a Mongo.
 
 ---
 

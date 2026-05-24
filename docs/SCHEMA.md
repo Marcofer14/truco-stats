@@ -1,6 +1,6 @@
 # Esquema de colecciones + decisiones de modelado
 
-## Diagrama
+## Diagrama de colecciones
 
 ```mermaid
 classDiagram
@@ -64,6 +64,82 @@ classDiagram
     elo_historial --> partidos : referencing
     torneos --> jugadores : referencing (equipos como [[ObjectId]])
 ```
+
+---
+
+## Flujo de aprobación con transacción ACID
+
+Este diagrama muestra qué pasa cuando el admin aprueba un pendiente y dónde
+puede fallar la transacción. Es el punto más crítico del sistema desde la
+óptica de integridad.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin
+    participant FE as Frontend admin.html
+    participant API as FastAPI /api/admin/aprobar/{id}
+    participant TX as services.transactions
+    participant Mongo as MongoDB Atlas
+    participant Redis as Upstash Redis
+
+    Admin->>FE: Click "Aprobar"
+    FE->>API: POST /api/admin/aprobar/{id} + x-admin-password
+    API->>API: admin_auth dependency (401 si falla)
+    API->>TX: aprobar_pendiente_atomico(id, client, db)
+
+    TX->>Mongo: find_one(pendientes, id)
+    alt Pendiente no existe
+        TX-->>API: LookupError → HTTP 404
+    end
+    alt Pendiente ya procesado
+        TX-->>API: ValueError → HTTP 400
+    end
+
+    rect rgb(230, 245, 230)
+        Note over TX,Mongo: client.start_session() + session.with_transaction()
+        TX->>Mongo: resolver_slots() inserts jugadores NEW:
+        TX->>Mongo: insert torneo (si tipo=torneo)
+        TX->>Mongo: insert N partidos
+        TX->>Mongo: insert N*M elo_historial
+        TX->>Mongo: update N jugadores.eloActual
+        TX->>Mongo: update pendiente → "aprobado"
+        Mongo-->>TX: COMMIT (todo OK)
+    end
+
+    Note over TX: Post-commit
+    TX->>Redis: stats_cache_invalidate (DEL cache:stats:*)
+    TX->>Redis: lb_rebuild desde Mongo (ZADD lb:elo)
+    TX->>Redis: feed_rebuild desde Mongo (LPUSH feed:partidos)
+    TX-->>API: OK
+    API-->>FE: 200 {"ok":true}
+    FE-->>Admin: Pendiente aprobado y publicado
+```
+
+### Qué pasa cuando algo falla a mitad de la transacción
+
+```mermaid
+sequenceDiagram
+    participant TX as services.transactions
+    participant Mongo as MongoDB
+
+    rect rgb(255, 240, 240)
+        Note over TX,Mongo: session.with_transaction()
+        TX->>Mongo: insert torneo ✓
+        TX->>Mongo: insert partido 1 ✓
+        TX->>Mongo: insert partido 2 ✓
+        TX->>Mongo: insert elo_historial[0..3] ✓
+        TX->>TX: ⚠️ excepción inesperada
+        Mongo-->>TX: ROLLBACK automático
+        Note over Mongo: Todos los inserts<br/>(torneo, partidos,<br/>elo_historial) se descartan.<br/>jugadores.eloActual<br/>SIN CAMBIOS.<br/>pendiente sigue<br/>"pendiente".
+    end
+
+    TX-->>TX: re-raise excepción
+```
+
+Este escenario está cubierto por `tests/test_transactions_integration.py::test_rollback_no_deja_data_parcial_cuando_falla_mitad_transaccion` — que pasa contra Atlas real (no mocks).
+
+---
 
 ## Las 3 decisiones de modelado (Embedding vs Referencing)
 
