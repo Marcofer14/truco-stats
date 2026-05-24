@@ -279,8 +279,8 @@ def stats_peor_enemigo(modalidad: Optional[str] = None):
                     "initialValue": [],
                     "in": {"$concatArrays": [
                         "$$value",
-                        {"$map": {"input": "$loserTeam", "as": "L", "in": {
-                            "a": "$$this", "b": "$$L", "aGano": True,
+                        {"$map": {"input": "$loserTeam", "as": "loser", "in": {
+                            "a": "$$this", "b": "$$loser", "aGano": True,
                         }}},
                     ]},
                 }},
@@ -289,8 +289,8 @@ def stats_peor_enemigo(modalidad: Optional[str] = None):
                     "initialValue": [],
                     "in": {"$concatArrays": [
                         "$$value",
-                        {"$map": {"input": "$equipoGanador", "as": "W", "in": {
-                            "a": "$$this", "b": "$$W", "aGano": False,
+                        {"$map": {"input": "$equipoGanador", "as": "winner", "in": {
+                            "a": "$$this", "b": "$$winner", "aGano": False,
                         }}},
                     ]},
                 }},

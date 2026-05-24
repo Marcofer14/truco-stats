@@ -38,57 +38,59 @@ Justificacion por indice:
 """
 from pymongo import ASCENDING, DESCENDING
 from pymongo.database import Database
+from pymongo.errors import OperationFailure
+
+
+# Codigos de error de Mongo que indican "ya existe un indice equivalente":
+# 85 = IndexOptionsConflict (mismo spec, distinto nombre/opts)
+# 86 = IndexKeySpecsConflict (mismo nombre, distinto spec)
+_DUP_INDEX_CODES = (85, 86)
+
+
+def _safe_create(coll, keys, **opts) -> str | None:
+    """Crea un indice. Si ya existe uno equivalente (con otro nombre), no falla."""
+    try:
+        return coll.create_index(keys, **opts)
+    except OperationFailure as e:
+        if e.code in _DUP_INDEX_CODES:
+            print(f"[indexes] {coll.name} {keys}: equivalente ya existe (code {e.code}), skip")
+            return None
+        raise
 
 
 def ensure_indexes(db: Database) -> list[str]:
-    """Crea (idempotente) todos los indices y devuelve la lista de nombres."""
-    creados = []
+    """Crea (idempotente, tolerante a conflictos de nombre) todos los indices."""
+    creados: list[str] = []
+
+    def add(name_or_none):
+        if name_or_none:
+            creados.append(name_or_none)
 
     # jugadores
-    creados.append(db.jugadores.create_index(
-        [("usernameLower", ASCENDING)],
-        unique=True, name="uniq_usernameLower",
-    ))
+    add(_safe_create(db.jugadores, [("usernameLower", ASCENDING)],
+                     unique=True, name="uniq_usernameLower"))
 
     # partidos
-    creados.append(db.partidos.create_index(
-        [("equipoA", ASCENDING), ("fecha", DESCENDING)],
-        name="esr_equipoA_fecha",
-    ))
-    creados.append(db.partidos.create_index(
-        [("equipoB", ASCENDING), ("fecha", DESCENDING)],
-        name="esr_equipoB_fecha",
-    ))
-    creados.append(db.partidos.create_index(
-        [("tipoPartido", ASCENDING), ("fecha", DESCENDING)],
-        name="esr_tipoPartido_fecha",
-    ))
-    creados.append(db.partidos.create_index(
-        [("torneoId", ASCENDING), ("fecha", ASCENDING)],
-        name="esr_torneoId_fecha",
-    ))
-    creados.append(db.partidos.create_index(
-        [("fecha", DESCENDING)],
-        name="sort_fecha",
-    ))
+    add(_safe_create(db.partidos, [("equipoA", ASCENDING), ("fecha", DESCENDING)],
+                     name="esr_equipoA_fecha"))
+    add(_safe_create(db.partidos, [("equipoB", ASCENDING), ("fecha", DESCENDING)],
+                     name="esr_equipoB_fecha"))
+    add(_safe_create(db.partidos, [("tipoPartido", ASCENDING), ("fecha", DESCENDING)],
+                     name="esr_tipoPartido_fecha"))
+    add(_safe_create(db.partidos, [("torneoId", ASCENDING), ("fecha", ASCENDING)],
+                     name="esr_torneoId_fecha"))
+    add(_safe_create(db.partidos, [("fecha", DESCENDING)], name="sort_fecha"))
 
     # elo_historial
-    creados.append(db.elo_historial.create_index(
-        [("jugadorId", ASCENDING), ("fecha", DESCENDING)],
-        name="esr_jugadorId_fecha",
-    ))
+    add(_safe_create(db.elo_historial, [("jugadorId", ASCENDING), ("fecha", DESCENDING)],
+                     name="esr_jugadorId_fecha"))
 
     # pendientes
-    creados.append(db.pendientes.create_index(
-        [("estado", ASCENDING), ("fechaEnvio", DESCENDING)],
-        name="esr_estado_fechaEnvio",
-    ))
+    add(_safe_create(db.pendientes, [("estado", ASCENDING), ("fechaEnvio", DESCENDING)],
+                     name="esr_estado_fechaEnvio"))
 
     # torneos
-    creados.append(db.torneos.create_index(
-        [("fecha", DESCENDING)],
-        name="sort_fecha",
-    ))
+    add(_safe_create(db.torneos, [("fecha", DESCENDING)], name="sort_fecha"))
 
-    print(f"[indexes] OK ({len(creados)} indices): {', '.join(creados)}")
+    print(f"[indexes] OK ({len(creados)} indices nuevos): {', '.join(creados) or '(ninguno, ya estaban)'}")
     return creados
