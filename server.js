@@ -369,7 +369,7 @@ app.get("/api/stats/peor-enemigo", async (req, res) => {
               initialValue: [],
               in: { $concatArrays: [
                 "$$value",
-                { $map: { input: "$loserTeam", as: "L", in: { a: "$$this", b: "$$L", aGano: true } } }
+                { $map: { input: "$loserTeam", as: "loser", in: { a: "$$this", b: "$$loser", aGano: true } } }
               ]}
             }
           },
@@ -379,7 +379,7 @@ app.get("/api/stats/peor-enemigo", async (req, res) => {
               initialValue: [],
               in: { $concatArrays: [
                 "$$value",
-                { $map: { input: "$equipoGanador", as: "W", in: { a: "$$this", b: "$$W", aGano: false } } }
+                { $map: { input: "$equipoGanador", as: "winner", in: { a: "$$this", b: "$$winner", aGano: false } } }
               ]}
             }
           }
