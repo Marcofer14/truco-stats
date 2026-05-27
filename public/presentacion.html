@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Truco Stats · Presentación TP NoSQL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:           #f4f1e8;
+      --bg-soft:      #ebe7da;
+      --black:        #0a0a0a;
+      --red:          #e63946;
+      --blue:         #1d4ed8;
+      --yellow:       #f4c430;
+      --green:        #15803d;
+      --muted:        #525252;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--black);
+      font-family: 'Inter', sans-serif;
+      font-size: 1.15rem;
+      line-height: 1.5;
+    }
+
+    .deck { position: relative; width: 100vw; height: 100vh; }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      padding: 6vmin 9vmin;
+    }
+    .slide.active { display: flex; }
+
+    /* numero grande de slide arriba a la izquierda */
+    .slide-num {
+      position: absolute;
+      top: 2vmin;
+      left: 4vmin;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 14vmin;
+      line-height: 1;
+      color: var(--black);
+      opacity: 0.08;
+    }
+
+    /* titulos */
+    h1.huge {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 14vmin;
+      line-height: 0.9;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+    }
+    h1.title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 7vmin;
+      line-height: 0.95;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      margin-bottom: 4vmin;
+    }
+    h2.sub {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 3vmin;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--red);
+      margin-bottom: 1vmin;
+    }
+    .kicker {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2vmin;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      margin-bottom: 1.5vmin;
+    }
+
+    /* bullets con marcadores geometricos */
+    ul.bullets {
+      list-style: none;
+      margin-top: 2vmin;
+    }
+    ul.bullets li {
+      position: relative;
+      padding-left: 5vmin;
+      margin: 2vmin 0;
+      font-size: 2.6vmin;
+      font-weight: 500;
+    }
+    ul.bullets li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 1.2vmin;
+      width: 2.2vmin;
+      height: 2.2vmin;
+      background: var(--red);
+      border: 2px solid var(--black);
+    }
+    ul.bullets li:nth-child(3n+2)::before { background: var(--blue); border-radius: 50%; }
+    ul.bullets li:nth-child(3n+3)::before { background: var(--yellow); transform: rotate(45deg); top: 1.3vmin; }
+    ul.bullets li b { font-weight: 800; }
+
+    /* layout dos columnas */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6vmin;
+      align-items: start;
+    }
+
+    /* grid de cards */
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1.5vmin;
+      margin-top: 3vmin;
+    }
+    @media (max-width: 1200px) {
+      .grid-cards { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .card {
+      background: white;
+      border: 3px solid var(--black);
+      padding: 2vmin;
+      position: relative;
+    }
+    .card .name {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2.2vmin;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.5vmin;
+    }
+    .card .count {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 6vmin;
+      line-height: 1;
+      margin: 0.5vmin 0;
+    }
+    .card .fields {
+      list-style: none;
+      margin-top: 1vmin;
+      font-size: 1.5vmin;
+      color: var(--muted);
+    }
+    .card .fields li { padding: 0.3vmin 0; }
+    .card .fields li b { color: var(--black); font-weight: 700; }
+    .card .badge-emb {
+      display: inline-block;
+      background: var(--yellow);
+      color: var(--black);
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.3vmin;
+      padding: 0.2vmin 0.6vmin;
+      border: 1.5px solid var(--black);
+      margin-left: 0.4vmin;
+    }
+    .card.red    { background: var(--red); color: white; }
+    .card.red .count, .card.red .name { color: white; }
+    .card.blue   { background: var(--blue); color: white; }
+    .card.blue .count, .card.blue .name { color: white; }
+    .card.yellow { background: var(--yellow); }
+    .card.dark   { background: var(--black); color: white; }
+    .card.dark .name, .card.dark .count { color: white; }
+    .card.dark .fields { color: #aaa; }
+    .card.dark .fields li b { color: white; }
+
+    /* tabla simple */
+    table.bauh {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2vmin;
+    }
+    table.bauh th, table.bauh td {
+      padding: 1.2vmin 1.5vmin;
+      text-align: left;
+      border-bottom: 2px solid var(--black);
+      font-size: 2vmin;
+    }
+    table.bauh th {
+      background: var(--black);
+      color: var(--bg);
+      font-family: 'Archivo Black', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 1.6vmin;
+    }
+    table.bauh td.ok { color: var(--green); font-weight: 800; }
+
+    /* formas geometricas decorativas */
+    .deco {
+      position: absolute;
+      z-index: -1;
+    }
+    .deco.circle-red    { width: 30vmin; height: 30vmin; border-radius: 50%; background: var(--red); right: -8vmin; bottom: -8vmin; }
+    .deco.circle-yellow { width: 20vmin; height: 20vmin; border-radius: 50%; background: var(--yellow); right: 5vmin; top: 5vmin; }
+    .deco.square-blue   { width: 25vmin; height: 25vmin; background: var(--blue); right: -8vmin; top: -8vmin; }
+    .deco.triangle-red {
+      width: 0; height: 0;
+      border-left: 18vmin solid transparent;
+      border-right: 18vmin solid transparent;
+      border-bottom: 28vmin solid var(--red);
+      right: 4vmin; bottom: 4vmin;
+    }
+    .deco.bar-blue { width: 100vw; height: 3vmin; background: var(--blue); left: 0; top: 0; }
+    .deco.bar-red-bottom { width: 100vw; height: 3vmin; background: var(--red); left: 0; bottom: 0; }
+
+    /* HUD */
+    .hud {
+      position: fixed;
+      bottom: 1.5vmin;
+      right: 2vmin;
+      display: flex;
+      gap: 3vmin;
+      align-items: center;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.5vmin;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      z-index: 100;
+    }
+    .hud .counter {
+      background: var(--black);
+      color: var(--bg);
+      padding: 0.5vmin 1vmin;
+    }
+
+    /* mini diagrama de arquitectura */
+    .arch-diagram {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2vmin;
+      margin-top: 3vmin;
+      font-family: 'Archivo Black', sans-serif;
+    }
+    .arch-box {
+      background: white;
+      border: 3px solid var(--black);
+      padding: 2vmin;
+      text-align: center;
+      position: relative;
+    }
+    .arch-box .label { font-size: 1.5vmin; color: var(--muted); margin-bottom: 0.5vmin; }
+    .arch-box .name { font-size: 2.5vmin; }
+    .arch-box.center { background: var(--yellow); }
+    .arch-box .desc { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 1.4vmin; color: var(--muted); margin-top: 1vmin; }
+
+    /* highlights */
+    .hl-red    { color: var(--red); font-weight: 900; }
+    .hl-blue   { color: var(--blue); font-weight: 900; }
+    .hl-yellow { background: var(--yellow); padding: 0 0.3vmin; }
+
+    /* slide-specific: portada */
+    .cover {
+      background: var(--black);
+      color: var(--bg);
+    }
+    .cover h1.huge { color: var(--bg); }
+    .cover h1.huge .accent { color: var(--red); }
+    .cover .meta {
+      margin-top: 4vmin;
+      font-family: 'Archivo Black', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 2vmin;
+      color: var(--yellow);
+    }
+    .cover .urls {
+      margin-top: 6vmin;
+      font-family: 'Inter', monospace;
+      font-size: 1.6vmin;
+      color: #aaa;
+    }
+    .cover .urls span { color: var(--bg); }
+
+    /* slide-specific: cumplimiento */
+    .check-yes { color: var(--green); font-family: 'Archivo Black', sans-serif; font-size: 2.5vmin; }
+
+    /* listas inline */
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5vmin;
+      margin-top: 2vmin;
+    }
+    .pill {
+      background: var(--bg-soft);
+      border: 2px solid var(--black);
+      padding: 1vmin 2vmin;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.6vmin;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pill.red    { background: var(--red); color: white; }
+    .pill.blue   { background: var(--blue); color: white; }
+    .pill.yellow { background: var(--yellow); }
+    .pill.dark   { background: var(--black); color: var(--bg); }
+
+    /* tres estructuras Redis */
+    .redis-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2vmin;
+      margin-top: 3vmin;
+    }
+    .redis-card {
+      background: white;
+      border: 3px solid var(--black);
+      padding: 2.5vmin;
+      position: relative;
+    }
+    .redis-card .icon {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2.5vmin;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: white;
+      padding: 0.5vmin 1.5vmin;
+      display: inline-block;
+      margin-bottom: 1vmin;
+    }
+    .redis-card.s1 .icon { background: var(--red); }
+    .redis-card.s2 .icon { background: var(--blue); }
+    .redis-card.s3 .icon { background: var(--yellow); color: var(--black); }
+    .redis-card .keyname {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2vmin;
+      margin: 1vmin 0;
+    }
+    .redis-card .desc { font-size: 1.6vmin; color: var(--muted); }
+    .redis-card .ttl {
+      margin-top: 1.5vmin;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 1.4vmin;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.5vmin 1vmin;
+      display: inline-block;
+      background: var(--bg-soft);
+      border: 2px solid var(--black);
+    }
+  </style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 1 — PORTADA -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide cover active" data-slide="1">
+    <h1 class="huge">TRUCO<br><span class="accent">STATS</span></h1>
+    <p class="meta">TP Integrador · NoSQL de alto rendimiento · 2026</p>
+    <p class="urls">
+      <span>truco-stats.onrender.com</span><br>
+      github.com/Marcofer14/truco-stats
+    </p>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 2 — INTRODUCCIÓN -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="2">
+    <span class="slide-num">02</span>
+    <div class="deco circle-red"></div>
+    <p class="kicker">El proyecto</p>
+    <h1 class="title">Stats de truco<br>entre amigos</h1>
+    <ul class="bullets">
+      <li>Un grupo de <b>~20 personas</b> juega torneos y partidos sueltos.</li>
+      <li>Cualquiera puede <b>cargar resultados</b>.</li>
+      <li>Un admin los <b>aprueba</b> y se publican en el dashboard.</li>
+      <li>El sistema calcula <b>ELO</b>, rachas, parejas, peor enemigo.</li>
+      <li>Caso real: <span class="hl-yellow">dominio chico, modelado rico.</span></li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 3 — ARQUITECTURA -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="3">
+    <span class="slide-num">03</span>
+    <p class="kicker">Visión general</p>
+    <h1 class="title">Arquitectura</h1>
+
+    <div class="arch-diagram">
+      <div class="arch-box">
+        <div class="label">FUENTE DE VERDAD</div>
+        <div class="name" style="color: var(--blue);">MONGO ATLAS</div>
+        <div class="desc">5 colecciones · persistente · CP</div>
+      </div>
+      <div class="arch-box center">
+        <div class="label">APLICACIÓN</div>
+        <div class="name">FASTAPI</div>
+        <div class="desc">Python 3.11 · uvicorn · en Render</div>
+      </div>
+      <div class="arch-box">
+        <div class="label">ACELERACIÓN</div>
+        <div class="name" style="color: var(--red);">UPSTASH REDIS</div>
+        <div class="desc">cache · materialized views · efímero</div>
+      </div>
+    </div>
+
+    <ul class="bullets" style="margin-top: 4vmin;">
+      <li>El frontend es <b>HTML estático</b> servido por la misma app.</li>
+      <li>Cada componente <b>tiene un rol claro</b> y se puede reemplazar.</li>
+      <li>Si Redis cae, <b>el sitio sigue funcionando</b>.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 4 — MONGODB ATLAS -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="4">
+    <span class="slide-num">04</span>
+    <div class="deco square-blue"></div>
+    <p class="kicker">La base primaria</p>
+    <h1 class="title">MongoDB <span class="hl-blue">Atlas</span></h1>
+    <ul class="bullets">
+      <li><b>Replica set de 3 nodos</b> en tier gratuito M0.</li>
+      <li>5 colecciones modelan todo el dominio.</li>
+      <li>Comportamiento <b>CP</b> (consistencia &gt; disponibilidad).</li>
+      <li><b>Write concern majority</b> en cada operación.</li>
+      <li>JSON Schema validator activo en <b>jugadores</b>.</li>
+    </ul>
+    <div class="pill-list">
+      <span class="pill blue">CP · CAP</span>
+      <span class="pill">M0 free</span>
+      <span class="pill yellow">5 colecciones</span>
+      <span class="pill red">Schema validator</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 5 — LAS 5 COLECCIONES -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="5">
+    <span class="slide-num">05</span>
+    <p class="kicker">El modelo de datos</p>
+    <h1 class="title">Las <span class="hl-red">5 colecciones</span></h1>
+
+    <div class="grid-cards">
+      <div class="card blue">
+        <div class="name">jugadores</div>
+        <div class="count">24</div>
+        <ul class="fields">
+          <li><b>username</b> único</li>
+          <li><b>nombreCompleto</b></li>
+          <li><b>eloActual</b></li>
+          <li>activo, origen</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="name">partidos</div>
+        <div class="count">20</div>
+        <ul class="fields">
+          <li><b>equipoA / B / Ganador</b> → ref</li>
+          <li><b>eloSnapshot</b> <span class="badge-emb">EMB</span></li>
+          <li>fecha, tipoPartido, ronda</li>
+          <li>torneoId (opcional)</li>
+        </ul>
+      </div>
+
+      <div class="card yellow">
+        <div class="name">torneos</div>
+        <div class="count">3</div>
+        <ul class="fields">
+          <li><b>nombre</b>, fecha, formato</li>
+          <li><b>equipos</b> arrays bidim. → ref</li>
+          <li>equipoGanador</li>
+          <li>modalidad (2v2/3v3/1v1)</li>
+        </ul>
+      </div>
+
+      <div class="card dark">
+        <div class="name">elo_historial</div>
+        <div class="count">~80</div>
+        <ul class="fields">
+          <li><b>jugadorId</b> → ref</li>
+          <li>eloAnterior → eloNuevo</li>
+          <li>delta, fecha</li>
+          <li>partidoId, torneoId</li>
+        </ul>
+      </div>
+
+      <div class="card red">
+        <div class="name">pendientes</div>
+        <div class="count">1-5</div>
+        <ul class="fields">
+          <li><b>torneo</b> <span class="badge-emb">EMB</span></li>
+          <li><b>partidos</b> <span class="badge-emb">EMB ARR</span></li>
+          <li>estado: pendiente/aprobado</li>
+          <li>fechaEnvio, fechaResolucion</li>
+        </ul>
+      </div>
+    </div>
+
+    <ul class="bullets" style="margin-top: 3vmin; font-size: 2vmin;">
+      <li><b>3 decisiones de modelado:</b> eloSnapshot embebido, equipos referenciados, pendientes embebido como árbol completo.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 6 — MONGODB COMPASS -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="6">
+    <span class="slide-num">06</span>
+    <div class="deco circle-yellow"></div>
+    <p class="kicker">Cliente visual</p>
+    <h1 class="title">MongoDB <span class="hl-yellow">Compass</span></h1>
+    <ul class="bullets">
+      <li><b>Cliente oficial</b> para inspeccionar Atlas en vivo.</li>
+      <li>Vemos las 5 colecciones con su contenido real.</li>
+      <li>Aplicamos el <b>JSON Schema validator</b> desde mongosh integrado.</li>
+      <li>Verificamos los <b>9 índices ESR</b> con <span class="hl-yellow">explain()</span>.</li>
+      <li>Sirve para defender en vivo cualquier pregunta de modelo.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 7 — PYMONGO -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="7">
+    <span class="slide-num">07</span>
+    <p class="kicker">El driver oficial</p>
+    <h1 class="title">PyMongo</h1>
+    <ul class="bullets">
+      <li>Driver <b>oficial de MongoDB para Python</b>.</li>
+      <li>Soporta <b>sesiones + transacciones ACID</b>.</li>
+      <li>Auto-retry ante errores transitorios de red.</li>
+      <li>Habilita los <b>9 índices compuestos</b> con regla ESR.</li>
+      <li>Aggregations <b>declarativas y eficientes</b>.</li>
+    </ul>
+    <div class="pill-list">
+      <span class="pill red">Driver oficial</span>
+      <span class="pill blue">ACID</span>
+      <span class="pill yellow">ESR</span>
+      <span class="pill">Aggregations</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 8 — FASTAPI + UVICORN -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="8">
+    <span class="slide-num">08</span>
+    <div class="deco triangle-red"></div>
+    <p class="kicker">La capa de aplicación</p>
+    <h1 class="title">FastAPI<br>+ uvicorn</h1>
+    <ul class="bullets">
+      <li><b>18 endpoints REST</b> bien organizados.</li>
+      <li>7 <b>aggregation pipelines complejos</b>.</li>
+      <li>Validación con Pydantic, OpenAPI gratis.</li>
+      <li><b>Auth por header</b> en los endpoints admin.</li>
+      <li>Frontend Bauhaus servido como static files.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 9 — REDIS (UPSTASH) -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="9">
+    <span class="slide-num">09</span>
+    <p class="kicker">La aceleración</p>
+    <h1 class="title">Redis <span class="hl-red">(Upstash)</span></h1>
+
+    <div class="redis-grid">
+      <div class="redis-card s1">
+        <span class="icon">SORTED SET</span>
+        <div class="keyname">lb:elo</div>
+        <div class="desc">Ranking ELO ordenado. ZADD al actualizar, ZRANGE para leer.</div>
+        <span class="ttl">Sin TTL · write-through</span>
+      </div>
+      <div class="redis-card s2">
+        <span class="icon">HASH</span>
+        <div class="keyname">cache:stats:*</div>
+        <div class="desc">Cache de aggregations por modalidad. Una key por endpoint.</div>
+        <span class="ttl">TTL 60s</span>
+      </div>
+      <div class="redis-card s3">
+        <span class="icon">LIST</span>
+        <div class="keyname">feed:partidos</div>
+        <div class="desc">Últimos 20 partidos. LPUSH + LTRIM para limitar tamaño.</div>
+        <span class="ttl">Sin TTL · capped</span>
+      </div>
+    </div>
+
+    <ul class="bullets" style="margin-top: 3vmin; font-size: 2vmin;">
+      <li>El TP pide ≥2 estructuras. <b>Usamos 3.</b></li>
+      <li>Invalidación <b>post-commit</b> de la transacción.</li>
+      <li>Si Redis muere, app degrada con <b>graceful fallback</b>.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 10 — RENDER -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="10">
+    <span class="slide-num">10</span>
+    <div class="deco square-blue"></div>
+    <p class="kicker">Hosting</p>
+    <h1 class="title">Render</h1>
+    <ul class="bullets">
+      <li><b>Auto-deploy</b> en cada push a <b>main</b>.</li>
+      <li>Runtime Python 3.11.10 detectado por runtime.txt.</li>
+      <li>Free tier — duerme tras 15 min sin tráfico.</li>
+      <li>3 env vars: <b>MONGO_URI</b>, <b>ADMIN_PASSWORD</b>, <b>REDIS_URL</b>.</li>
+      <li>Logs en tiempo real desde el dashboard.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 11 — TRANSACCIÓN ACID -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="11">
+    <span class="slide-num">11</span>
+    <p class="kicker">El punto más crítico</p>
+    <h1 class="title">Transacción <span class="hl-red">ACID</span></h1>
+    <ul class="bullets">
+      <li>Cuando el admin <b>aprueba un pendiente</b>:</li>
+      <li>Se insertan <b>jugadores nuevos</b>, el torneo, partidos y elo_historial.</li>
+      <li>Se actualizan los <b>eloActual</b> y el estado del pendiente.</li>
+      <li>Todo dentro de una <b>sesión Mongo</b>.</li>
+      <li>Si algo falla → <b>rollback completo</b>. Todo o nada.</li>
+      <li>Probado con <b>test automatizado</b> contra Atlas real.</li>
+    </ul>
+    <div class="pill-list">
+      <span class="pill red">5 colecciones escritas</span>
+      <span class="pill blue">with_transaction</span>
+      <span class="pill yellow">Tests de rollback</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 12 — CUMPLIMIENTO DEL TP -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="12">
+    <span class="slide-num">12</span>
+    <p class="kicker">La consigna</p>
+    <h1 class="title">Cumplimiento<br>del TP</h1>
+
+    <table class="bauh">
+      <thead>
+        <tr><th>Fase</th><th>Requisito</th><th></th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>1</b> Modelado</td><td>Dominio + esquema + 3 decisiones embed/ref + seed</td><td class="ok">✓</td></tr>
+        <tr><td><b>2</b> Procesamiento</td><td>PyMongo + 7 aggregations + 9 índices ESR</td><td class="ok">✓</td></tr>
+        <tr><td><b>3</b> Integridad</td><td>Transacción ACID + CAP + Sharding</td><td class="ok">✓</td></tr>
+        <tr><td><b>4</b> Redis</td><td>3 estructuras + TTL + invalidación coherente</td><td class="ok">✓</td></tr>
+        <tr><td><b>Extra</b></td><td>Tests automatizados + CI + dashboard funcional</td><td class="ok">✓</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 13 — DEMO EN VIVO -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide" data-slide="13">
+    <span class="slide-num">13</span>
+    <div class="deco circle-red"></div>
+    <p class="kicker">5 minutos</p>
+    <h1 class="title">Demo<br>en vivo</h1>
+    <ul class="bullets">
+      <li>Recorrida del <b>dashboard público</b>.</li>
+      <li>Cargar un <b>partido nuevo</b> desde el wizard.</li>
+      <li>Aprobarlo desde el <b>panel admin</b>.</li>
+      <li>Ver en Compass que la <b>data se insertó atómicamente</b>.</li>
+      <li>Ver en Upstash que <b>el cache se invalidó</b> y el ranking se actualizó.</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 14 — CIERRE -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="slide cover" data-slide="14">
+    <h1 class="huge"><span class="accent">GRACIAS</span></h1>
+    <p class="meta">Preguntas</p>
+    <p class="urls">
+      <span>truco-stats.onrender.com</span><br>
+      github.com/Marcofer14/truco-stats
+    </p>
+  </section>
+
+</div>
+
+<!-- HUD -->
+<div class="hud">
+  <span class="hint">← → navegar · F fullscreen · H inicio</span>
+  <span class="counter">1 / 14</span>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.querySelector('.counter');
+  const total = slides.length;
+  let current = 1;
+
+  function show(n) {
+    current = Math.max(1, Math.min(total, n));
+    slides.forEach(s => s.classList.remove('active'));
+    document.querySelector(`[data-slide="${current}"]`).classList.add('active');
+    counter.textContent = `${current} / ${total}`;
+    // Actualizar URL hash para deep linking
+    history.replaceState(null, '', `#${current}`);
+  }
+
+  document.addEventListener('keydown', e => {
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+      case ' ':
+      case 'PageDown':
+        e.preventDefault();
+        show(current + 1);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+      case 'PageUp':
+        e.preventDefault();
+        show(current - 1);
+        break;
+      case 'Home':
+      case 'h':
+      case 'H':
+        show(1);
+        break;
+      case 'End':
+        show(total);
+        break;
+      case 'f':
+      case 'F':
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+        break;
+      case 'Escape':
+        if (document.fullscreenElement) document.exitFullscreen();
+        break;
+    }
+  });
+
+  // Click derecho/izquierdo en la pantalla para navegar
+  document.addEventListener('click', e => {
+    if (e.target.closest('.hud')) return;
+    const x = e.clientX;
+    const half = window.innerWidth / 2;
+    if (x > half) show(current + 1);
+    else show(current - 1);
+  });
+
+  // Soporte de deep linking al cargar (#3 → slide 3)
+  const initial = parseInt(window.location.hash.replace('#', ''), 10);
+  if (initial >= 1 && initial <= total) show(initial);
+</script>
+
+</body>
+</html>
